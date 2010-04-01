@@ -1,0 +1,21 @@
+JediSet is a small project under the GPL v3+ license.
+
+Run: perl jediset.pl
+
+It displays games of set using ascii art directly in the terminal.
+Set is a game of visual pattern matching. Each card has 4 variables and 3 values for each. Be the first to find a set of 3 cards where each variable across all 3 cards is the same or different throughout.
+
+Variables: Shape    Fill Color Number
+Values:    Triangle @    pink  1
+           Oval     +    yello 2
+           Rect     `    green 3
+
+This is the game being run:
+
+..___.. ..___.. ._____. ._____. ..___.. ..___.. ._____. ..___.. ._____. ..._... ..___.. ..._... 
+./@@@\. ./+++\. |`````| |@@@@@| ./+++\. ./```\. |+++++| ./```\. |@@@@@| ../@\.. ./@@@\. ../+\.. 
+(@@@@@) (+++++) |`````| |@@@@@| (+++++) (`````) |+++++| (`````) |@@@@@| ./@@@\. (@@@@@) ./+++\. 
+.\@@@/. .\+++/. |`````| |@@@@@| .\+++/. .\```/. |+++++| .\```/. |@@@@@| /@@@@@\ .\@@@/. /+++++\ 
+..---.. ..---.. ------- ------- ..---.. ..---.. ------- ..---.. ------- ------- ..---.. -------
+
+Note: The variable of number (multiple shapes on a card) is missing from this example output as it has yet to be implemented. Color is also missing simply because this plain text document doesn't support colored text.
