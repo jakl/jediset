@@ -1,12 +1,15 @@
 #!/usr/bin/perl
 use strict; use warnings;
 use Term::ANSIColor;
-use subs qw(print_shapes shade colorize mold);
+use subs qw(shade colorize mold);
+
+my $debug = 1;
+
 #black red green yellow blue magenta cyan white
 my @color = qw(magenta  green  yellow);
 my @number= qw(1        2      3     );
-my @shape = qw(tria     rect   oval  );
-my @fill  = qw(`	+      @    );
+my @shape = qw(tria     rect   oval	 );
+my @fill  = qw(`		+      @	 );
 
 my @rect = qw(
 ._____.
@@ -27,40 +30,57 @@ my @oval = qw(
 .\\@@@/.
 ..---..);
 
-my @form = @rect;#the current shape used for the next card to print
+#the current shape used for the next card to print
+my @form = @rect;#Needs to be initialized for for-loops using a standard shape's array length
 
-my @deck;
+#Keep a record of cards already used per game in this 3D array to avoid dups
+my @deck;#axis's of the array are Color/Shape/Fill and values are defined/undefined : used/unused
 
-my $columns = 12;
-my $rows = 1;
+my $columns = 10;
+my $rows = 3;
 
 my $s; my @s;#shape
 my $f; my @f;#fill
 my $c; my @c;#color
 
-for(1..$rows){
-for(1..$columns){
-	my $count = 0;
-	do{
-		exit 0 if $count++ > @shape*@fill*@color;
-		$s = int rand @shape;
-		$f = int rand @fill;
-		$c = int rand @color;
-	}while(defined $deck[$s][$f][$c]);
-	$deck[$s][$f][$c]=0;
-	push @s, $s; push @f, $f; push @c, $c;
-}
+my $count=0;
 
-for my $i (0..$#form){
-for(0..$#s){
-	mold $s[$_];
-	shade $f[$_];
-	colorize $c[$_];
-	print $form[$i]." ";
-}
-print "\n";
-}
-undef @s;undef @f;undef @c;
+for(1..$rows){
+	
+	#Generate a row of cards based on number of columns
+	for(1..$columns){
+		
+		#Check to see if all cards have been used already
+		$count=0;
+		for $c(0..$#color){ for $s(0..$#shape){ for $f(0..$#fill){
+			$count++ if defined $deck[$s][$f][$c];#Count number of cards that have been used
+        }                 }                   }
+		if ($count >= @color*@fill*@shape){
+			print "Ran out of $count cards\n" if $debug;
+			exit 0;#Exit if all cards have been used
+		}
+		
+		do{
+			$s = int rand @shape;
+			$f = int rand @fill;
+			$c = int rand @color;
+		}while(defined $deck[$s][$f][$c]);#If card has been used, repick
+		$deck[$s][$f][$c]=0;#Mark card as used. Defined/0 = Used; Undefined = Not used
+		push @s, $s; push @f, $f; push @c, $c;#put card in parallel arrays
+	}#make row
+	
+	#cycle height/rows/lines of ascii shape
+	for my $i (0..$#form){
+		#cycle each card, printing correct row
+		for(0..$columns-1){
+			mold $s[$_];#make @form a specific shape
+			shade $f[$_];#make @form a specific fill
+			colorize $c[$_];#ready output for a color
+			print $form[$i]." ";
+		}
+	print "\n";
+	}
+	undef @s;undef @f;undef @c;
 }
 
 #Put a shape in @form, randomly or by index into @shape from argument
@@ -82,6 +102,7 @@ sub shade{
 #Set the color to random, or from @color indexed by first argument
 sub colorize{
 	my $c = shift; $c = int rand @color unless defined $c;
-	print color "bold $color[$c]";
+	#print color "bold $color[$c]";
+	#$form[3][4] = $c[0];
 	return $c;
 }
