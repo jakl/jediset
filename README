@@ -1,21 +1,33 @@
 JediSet is a small project under the GPL v3+ license.
 
-Run: perl jediset.pl
+Run: while true; do perl jediset.pl 4 1; sleep 1s; done;
+
+Where the arguments to jediset.pl are columns and rows as non-negative integers
 
 It displays games of set using ascii art directly in the terminal.
 Set is a game of visual pattern matching. Each card has 4 variables and 3 values for each. Be the first to find a set of 3 cards where each variable across all 3 cards is the same or different throughout.
 
-Variables: Shape    Fill Color Number
-Values:    Triangle @    pink  1
-           Oval     +    yello 2
-           Rect     `    green 3
+Variables: Shape    Fill Color  Number
+Values:    triangle @    pink   1
+           oval     +    yellow 2
+           rect     `    green  3
 
 This is the game being run:
 
-..___.. ..___.. ._____. ._____. ..___.. ..___.. ._____. ..___.. ._____. ..._... ..___.. ..._... 
-./@@@\. ./+++\. |`````| |@@@@@| ./+++\. ./```\. |+++++| ./```\. |@@@@@| ../@\.. ./@@@\. ../+\.. 
-(@@@@@) (+++++) |`````| |@@@@@| (+++++) (`````) |+++++| (`````) |@@@@@| ./@@@\. (@@@@@) ./+++\. 
-.\@@@/. .\+++/. |`````| |@@@@@| .\+++/. .\```/. |+++++| .\```/. |@@@@@| /@@@@@\ .\@@@/. /+++++\ 
-..---.. ..---.. ------- ------- ..---.. ..---.. ------- ..---.. ------- ------- ..---.. -------
+                      ..._...               ..._......_...        
+                      ../+\..               ../+\..../+\..        
+                      ./+++\.               ./+++\../+++\.        
+                      /+++++\               /+++++\/+++++\        
+                      -------               --------------        
+..___..               ..___....___..        ._____.._____.._____. 
+./```\.               ./+++\../+++\.        |+++++||+++++||+++++| 
+(`````)               (+++++)(+++++)        |+++++||+++++||+++++| 
+.\```/.               .\+++/..\+++/.        |+++++||+++++||+++++| 
+..---..               ..---....---..        --------------------- 
+..._......_......_... ._____.._____.._____. ..._...               
+../+\..../+\..../+\.. |@@@@@||@@@@@||@@@@@| ../`\..               
+./+++\../+++\../+++\. |@@@@@||@@@@@||@@@@@| ./```\.               
+/+++++\/+++++\/+++++\ |@@@@@||@@@@@||@@@@@| /`````\               
+--------------------- --------------------- -------               
 
-Note: The variable of number (multiple shapes on a card) is missing from this example output as it has yet to be implemented. Color is also missing simply because this plain text document doesn't support colored text.
+Note: The variable of color is missing simply because this plain text document doesn't support colored text.
