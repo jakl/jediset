@@ -1,17 +1,34 @@
 #!/usr/bin/perl
+=pod
+Copyright 2010 James Koval
+
+This file is part of Jedi Set
+
+Jedi Set is free software: you can redistribute it
+and/or modify it under the terms of the GNU General Public License
+as published by the Free Software Foundation, either version 3
+of the License, or (at your option) any later version.
+
+Jedi Set is distributed in the hope that it will be useful, but
+WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See
+the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with Jedi Set. If not, see <http://www.gnu.org/license/>
+=cut
+
 use strict; use warnings;
 use Term::ANSIColor;
-use List::Util 'shuffle';
-use List::Util 'max';#used to find the maximum number in @number, for formatting correctly
-use subs qw(shade colorize mold);
+use List::Util qw(shuffle max);
+use subs qw(shade colorize mold init);
 
-my $debug = 1;
-
-#black red green yellow blue magenta cyan white
+#all supported colors: black red green yellow blue magenta cyan white
+#constant list of values for cards 
 my @color = qw(magenta  green  yellow);
-my @number= qw(1        2      3     );
-my @shape = qw(tria     rect   oval  );
-my @fill  = qw(`	+      @     );
+my @number= qw(1        2      3   );
+my @shape = qw(tria     rect   oval);
+my @fill  = qw(`        +      @   );
 
 my @rect = qw(
 ._____.
@@ -32,50 +49,61 @@ my @oval = qw(
 .\\@@@/.
 ..---..);
 
-
-#the current shape used for the next card to print
-my @form = @rect;#Needs to be initialized for for-loops using a standard shape's array length
-
-#Keep a record of cards already used per game in this 3D array to avoid dups
-my @deck;#axis's of the array are Color/Shape/Fill/Number and element values are defined/undefined : used/unused
+my @form;#shape used for the next card printed
 
 my $columns = 3;
 my $rows = 1;
 
-my $c; my @c;#color
-my $n; my @n;#number
-my $s; my @s;#shape
-my $f; my @f;#fill
+#parallel arrays to hold deck, and scalers to temporarily hold values during operations
+my $c; my @c; my @cp;#color
+my $n; my @n; my @np;#number
+my $s; my @s; my @sp;#shape
+my $f; my @f; my @fp;#fill
 
-#populate || arrays with non-repeating cards
-for $c(0..$#color){for $n(0..$#number){for $s(0..$#shape){for $f(0..$#fill){
-  push @c, $c;
-  push @n, $n;
-  push @s, $s;
-  push @f, $f;
-}}}}
+init;
 
-#shuffle
-@c = shuffle(@c);
-@n = shuffle(@n);
-@s = shuffle(@s);
-@f = shuffle(@f);
-
-#print "@c\n@n\n@s\n@f";#prove it is shuffled
-#print "$c[$_] $n[$_] $s[$_] $f[$_]\n" for (0..11);
-
+my $line;
 for(1..$rows){
 	#cycle height/rows/lines of ascii shape
 	for my $i (0..$#form){
 		#cycle each card, printing correct row
 		for(0..$columns-1){
-			mold $s[$_];#make @form a specific shape
-			shade $f[$_];#make @form a specific fill
-			colorize $c[$_];#ready output for a color
-			my $line = $form[$i] x $n[$_];
+			mold $sp[$_];#make @form a specific shape
+			shade $fp[$_];#make @form a specific fill
+			colorize $cp[$_];#ready output for a color
+			$line = $form[$i] x $np[$_];
 			print $line ." " x (length($form[0])*max(@number)- length($line))." ";
 		}
 	print "\n";
+	}
+}
+
+sub init{
+	@form = @rect;#Needs to be initialized for for-loops using a standard shape's array length
+	#reset arrays
+	undef @c;undef @n;undef @s;undef @f;
+	undef @cp;undef @np;undef @sp;undef @fp;
+
+	#populate deck with non-repeating cards
+	for $c(0..$#color){for $n(0..$#number){for $s(0..$#shape){for $f(0..$#fill){
+		push @c, $c;
+		push @n, $number[$n];
+		push @s, $s;
+		push @f, $f;
+	}}}}
+	
+	#shuffle deck
+	@c = shuffle(@c);
+	@n = shuffle(@n);
+	@s = shuffle(@s);
+	@f = shuffle(@f);
+	
+	#draw 12 cards to be in play
+	for(1..12){
+		push @cp, pop @c;
+		push @np, pop @n;
+		push @sp, pop @s;
+		push @fp, pop @f;
 	}
 }
 
