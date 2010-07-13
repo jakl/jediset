@@ -1,7 +1,7 @@
 #!/usr/bin/perl
 =pod
 Copyright 2010 James Koval
-
+ 
 This file is part of Jedi Set
 
 Jedi Set is free software: you can redistribute it
@@ -24,8 +24,10 @@ use Term::ANSIColor;
 use List::Util qw(shuffle max);
 use subs qw(shade colorize mold init printcards);
 
-my $columns = 4;#Number of columns across the screen
-my $cards = 12;#Number of cards in a new draw
+my $defaultcolumns = 4;#defaults used for help screen
+my $columns = $defaultcolumns;#Number of columns across the screen
+my $defaultcards = 12;
+my $cards = $defaultcards;#Number of cards in a new draw
 my $debug = 0;#show debug info
 my $numbers = 0;#bool to toggle on/off the numbers on cards
 my $version = 0; my $help = 0;
@@ -36,35 +38,66 @@ GetOptions('debug+' => \$debug, 'numbers' => \$numbers,
 
 if($help){
 print <<EOF;
-$0 : The Game of Jedi Set, a Terminal Card Game
+NAME
+    $0 : The Game of Jedi Set: a pattern matching terminal card game
 
-Running: Press enter to see a new set of cards. Press q then enter to quit.
-           More functionality will be added as the program matures out of alpha.
-
-Syntax: $0 [--help|--version|--debug|--columns=<int>|--numbers|
+USAGE
+    $0 [--help|--version|--debug|--columns=<int>|--numbers|
                        --cards=<int>]
+
+    Press enter to see a new set of cards. Press q then enter to quit.
+
+DESCRIPTION
+    See <http://en.wikipedia.org/wiki/Set_(game)>
    
-   --help        : This help message
-   --version     : Print version on standard output and exit
-   --debug       : Enable likely useless debuging output data 
-   --columns     : Specify the number of columns that will fit on your screen
-                   Default = 4
-   --numbers     : Show numbers on the centers of cards
-   --cards       : Specify the number of cards to play with each round
+OPTIONS
+--help        : This help message
+
+--columns     : Specify the number of columns that will fit on your screen
+                   Range = 1 through 20  else it defaults
+                   Default = $defaultcolumns
+--cards       : Specify the number of cards to play with each round
+                   Range = 1 through 81  else it defaults
+                   Default = $defaultcards
+--numbers     : Show numbers on the centers of cards
+
+--version     : Print version on standard output and exit
+
+--debug       : Enable (likely useless) debuging output data 
+                     The data will be of the form: int   int  int   int
+                                                   shape fill color number
+                     shape, fill, and color are indexes:   values 0 through 2
+                     number is saved directly:             values 1 through 3
+                       Note: Look at the code to see the meanings of indexes
+
+AUTHOR
+    Written by James Koval
+REPORTING BUGS
+    Report bugs to <jediknight304 () gmail . com>
+COPYRIGHT
+    Copyright 2010 James Koval
+    License GPLv3+: GNU GPL version 3 or later
+    <http://gnu.org/licenses/gpl.html>
+    This is free software; you are free to change and redistribute it
+    There is NO WARRANTY, to the extent permitted by law
 EOF
 exit 0;
-} elsif ($version) {
-print "$0 1.0 alpha\n";
-exit 0;
 }
+if ($version) {
+	print "$0 1.0 alpha\n";
+	exit 0;
+}
+#bounds checks
+$cards   = $defaultcards   if($cards   <1 or $cards   > 81);
+$columns = $defaultcolumns if($columns <1 or $columns > 21);
 
 
-#all supported colors: black red green yellow blue magenta cyan white
 #constant list of values for cards 
-my @color = qw(magenta  green  yellow);
-my @number= qw(1        2      3);
-my @shape = qw(tria     rect   oval);
-my @fill  = qw(`        +      @   );
+my @shape = qw(tria     rect   oval   );
+my @fill  = qw(`        +      @      );
+my @color = qw(magenta  green  yellow );
+my @number= qw(1        2      3      );
+#all supported colors: black red green yellow blue magenta cyan white
 
 my @rect = qw(
 ._____.
@@ -89,13 +122,13 @@ my @form;#shape used for the next card printed
 #scalers to temporarily hold values during operations
 #parallel arrays to hold deck
 #extra set of parallel arrays to hold cards in play (suffix p)
-my $c; my @c; my @cp;#color
-my $n; my @n; my @np;#number
 my $s; my @s; my @sp;#shape
 my $f; my @f; my @fp;#fill
+my $c; my @c; my @cp;#color
+my $n; my @n; my @np;#number
 
 while (1){
-init;
+init;#simply re-shuffle the entire deck every round
 printcards;
 my $in = <>;
 exit 0 if $in =~ /[qQ]/;
@@ -103,38 +136,49 @@ exit 0 if $in =~ /[qQ]/;
 
 sub printcards{
 	my $col=$columns;#fluxuates when fewer cards need to be printed
-	my $cardstoprint = @cp;
-	while(1){
-		last if($cardstoprint==0);
+	my $cardstoprint = @sp;
+	while($cardstoprint){
 		$col=$cardstoprint if($cardstoprint < $col);
-		#$cardstoprint-- for(1..$col);
 		
 		for my $i (0..$#form){#cycle each line in ascii shape
 			for(0..$col-1){#cycle columns
 				mold $sp[$_];#make @form a specific shape
 				shade $fp[$_];#make @form a specific fill
 				colorize $cp[$_];#ready output for a color
-				my $line = $form[$i] x $np[$_];#multiple form by the value of number
-				print "$cp[$_] $np[$_] $sp[$_] $fp[$_]" if $debug;
+				my $line = $form[$i] x $np[$_];#put the right number of shapes on a line
+
+				#show card's variable values beside card
+				print "$sp[$_] $fp[$_] $cp[$_] $np[$_]" if $debug;
 				
 				#display numbers on cards
 				if($i==$#form/2 and $numbers){
-					$line=substr($line,0,length($line)/2). (@cp-$cardstoprint+1) .substr($line,length($line)/2+length (@cp-$cardstoprint+1));
+				#grab the first half of the middle line in a card
+				#  and combine it with the card's number plus
+				#  the second half missing whatever is necessary
+				#  to fit the number. i.e. missing 1 character for <10
+				#  2 characters for >=10 because 10 is 2 characters
+					my $cardnumber = @cp-$cardstoprint+1;
+					my $half1 = substr($line,0,length($line)/2);
+					my $half2 = substr($line,length($line)/2+length ($cardnumber));
+					$line = $half1 . ($cardnumber) . $half2 ;
 					$cardstoprint--;
 				}
-				if($i==0 and !$numbers){
-					$cardstoprint--;#each new card that is printed, decrements cards needed to print
-				}
+				
+				#each new card that is printed, decrements cards needed to print
+				$cardstoprint-- if($i==0 and !$numbers);
+
+				#print card with enough spacing to fit the maximum number of shapes
 				print $line ." " x (length($form[0])*max(@number)- length($line))." ";
 			}
 		print "\n";
 		}
 		
+		#put cards on the other end of the array after being printed
 		for(1..$col){
-			push @cp, shift @cp;
-			push @np, shift @np;
 			push @sp, shift @sp;
 			push @fp, shift @fp;
+			push @cp, shift @cp;
+			push @np, shift @np;
 		}
 	}
 }
@@ -142,40 +186,44 @@ sub printcards{
 sub init{
 	@form = @rect;#init @form for for-loops that use a standard shape's array length
 	#reset arrays
-	undef @c;undef @n;undef @s;undef @f;
-	undef @cp;undef @np;undef @sp;undef @fp;
+	undef @s;undef @f;undef @c;undef @n;
+	undef @sp;undef @fp;undef @cp;undef @np;
 
 	#populate deck with non-repeating cards
-	for $c(0..$#color){for $n(0..$#number){for $s(0..$#shape){for $f(0..$#fill){
-		push @c, $c;
-		push @n, $number[$n];#save actual number rather than index
+	for $s(0..$#shape){for $f(0..$#fill){for $c(0..$#color){for $n(0..$#number){
 		push @s, $s;
 		push @f, $f;
+		push @c, $c;
+		push @n, $number[$n];#save actual number rather than index
 	}}}}
-	print "Deck:\n" if $debug;
-	for(0..$#c){
-		print $_+1 ." : $c[$_] $n[$_] $s[$_] $f[$_]\n" if $debug;
+	if($debug){
+		print "Deck:\n";
+		print $_+1 . " "x (3- length ($_+1)) . " $s[$_] $f[$_] $c[$_] $n[$_]\n" for(0..$#s);
 	}
 	
 	#shuffle deck
 	my @order = shuffle 0..$#c;#idea from http://stackoverflow.com/users/13/chris-jester-young
-	@c = @c[@order];
-	@n = @n[@order];
 	@s = @s[@order];
 	@f = @f[@order];
+	@c = @c[@order];
+	@n = @n[@order];
+
+	if($debug){
+		print "Shuffled Deck:\n";
+		print $_+1 . " "x (3- length ($_+1)) ." $s[$_] $f[$_] $c[$_] $n[$_]\n" for(0..$#s);
+	}
+
 	
-	
-	#draw 12 cards to be in play
-	$cards = 81 if $cards>81;
+	#draw cards to be in play
 	for(1..$cards){
-		push @cp, pop @c;
-		push @np, pop @n;
 		push @sp, pop @s;
 		push @fp, pop @f;
+		push @cp, pop @c;
+		push @np, pop @n;
 	}
-	print "Cards In Play:\n" if $debug;
-	for(0..$#cp){
-		print $_+1 ." : $cp[$_] $np[$_] $sp[$_] $fp[$_]\n" if $debug;
+	if($debug){
+		print "Cards In Play:\n";
+		print $_+1 . " "x (3- length ($_+1)) ." $sp[$_] $fp[$_] $cp[$_] $np[$_]\n" for(0..$#sp);
 	}
 }
 
@@ -202,3 +250,5 @@ sub colorize{
 	#$form[3][4] = $c[0];
 	return $c;
 }
+
+#number doesn't need a function, for it is saved directly in the array

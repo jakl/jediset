@@ -1,22 +1,48 @@
-jediset.pl : The Game of Jedi Set, a Terminal Card Game
+NAME
+    Jedi Set : The Game of Jedi Set: a pattern matching terminal card game
 
-Running: Press enter to see a new set of cards. Press q then enter to quit.
-           More functionality will be added as the program matures out of alpha.
+USAGE
+    jediset.pl [--help|--version|--debug|--columns=<int>|--numbers|
+                       --cards=<int>]
 
-Syntax: jediset.pl [--help|--version|--debug|--columns=<int>|--numbers|
-                     --cards=<int>]
+    Press enter to see a new set of cards. Press q then enter to quit.
+
+DESCRIPTION
+    See <http://en.wikipedia.org/wiki/Set_(game)>
    
-   --help        : This help message
-   --version     : Print version on standard output and exit
-   --debug       : Enable likely useless debuging output data 
-   --columns     : Specify the number of columns that will fit on your screen
+OPTIONS
+--help        : This help message
+
+--columns     : Specify the number of columns that will fit on your screen
+                   Range = 1 through 20  else it defaults
                    Default = 4
-   --numbers     : Show numbers on the centers of cards
-   --cards       : Specify the number of cards to play with each round
-   
-   
-   
-It displays games of set using ascii art directly in the terminal.
+--cards       : Specify the number of cards to play with each round
+                   Range = 1 through 81  else it defaults
+                   Default = 12
+--numbers     : Show numbers on the centers of cards
+
+--version     : Print version on standard output and exit
+
+--debug       : Enable (likely useless) debuging output data 
+                     The data will be of the form: int   int  int   int
+                                                   shape fill color number
+                     shape, fill, and color are indexes:   values 0 through 2
+                     number is saved directly:             values 1 through 3
+                       Note: Look at the code to see the meanings of indexes
+
+AUTHOR
+    Written by James Koval
+REPORTING BUGS
+    Report bugs to <jediknight304 () gmail . com>
+COPYRIGHT
+    Copyright 2010 James Koval
+    License GPLv3+: GNU GPL version 3 or later
+    <http://gnu.org/licenses/gpl.html>
+    This is free software; you are free to change and redistribute it
+    There is NO WARRANTY, to the extent permitted by law
+ 
+
+Jedi Set displays games of set using ascii art directly in the terminal.
 Set is a game of visual pattern matching. Each card has 4 variables and 3 values for each. Be the first to find a set of 3 cards where each variable across all 3 cards is the same or different throughout.
 
 Variables: Shape    Fill Color  Number
@@ -25,7 +51,7 @@ Values:    triangle @    pink   1
            rect     `    green  3
 
 This is the game being run:
-
+./jediset --columns=3 --cards=9
                       ..._...               ..._......_...        
                       ../+\..               ../+\..../+\..        
                       ./+++\.               ./+++\../+++\.        
