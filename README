@@ -1,9 +1,21 @@
-JediSet is a small project under the GPL v3+ license.
+jediset.pl : The Game of Jedi Set, a Terminal Card Game
 
-Run: while true; do perl jediset.pl 4 1; sleep 1s; done;
+Running: Press enter to see a new set of cards. Press q then enter to quit.
+           More functionality will be added as the program matures out of alpha.
 
-Where the arguments to jediset.pl are columns and rows as non-negative integers
-
+Syntax: jediset.pl [--help|--version|--debug|--columns=<int>|--numbers|
+                     --cards=<int>]
+   
+   --help        : This help message
+   --version     : Print version on standard output and exit
+   --debug       : Enable likely useless debuging output data 
+   --columns     : Specify the number of columns that will fit on your screen
+                   Default = 4
+   --numbers     : Show numbers on the centers of cards
+   --cards       : Specify the number of cards to play with each round
+   
+   
+   
 It displays games of set using ascii art directly in the terminal.
 Set is a game of visual pattern matching. Each card has 4 variables and 3 values for each. Be the first to find a set of 3 cards where each variable across all 3 cards is the same or different throughout.
 
@@ -29,5 +41,3 @@ This is the game being run:
 ./+++\../+++\../+++\. |@@@@@||@@@@@||@@@@@| ./```\.               
 /+++++\/+++++\/+++++\ |@@@@@||@@@@@||@@@@@| /`````\               
 --------------------- --------------------- -------               
-
-Note: The variable of color is missing simply because this plain text document doesn't support colored text.

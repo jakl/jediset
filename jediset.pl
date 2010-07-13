@@ -42,7 +42,7 @@ Running: Press enter to see a new set of cards. Press q then enter to quit.
            More functionality will be added as the program matures out of alpha.
 
 Syntax: $0 [--help|--version|--debug|--columns=<int>|--numbers|
-               --cards=<int>]
+                       --cards=<int>]
    
    --help        : This help message
    --version     : Print version on standard output and exit
@@ -50,7 +50,7 @@ Syntax: $0 [--help|--version|--debug|--columns=<int>|--numbers|
    --columns     : Specify the number of columns that will fit on your screen
                    Default = 4
    --numbers     : Show numbers on the centers of cards
-   --cards       : Number of cards to play with each round
+   --cards       : Specify the number of cards to play with each round
 EOF
 exit 0;
 } elsif ($version) {
