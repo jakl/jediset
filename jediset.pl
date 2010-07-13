@@ -21,12 +21,12 @@ along with Jedi Set. If not, see <http://www.gnu.org/license/>
 use strict; use warnings;
 use Term::ANSIColor;
 use List::Util qw(shuffle max);
-use subs qw(shade colorize mold init);
+use subs qw(shade colorize mold init printcards);
 
 #all supported colors: black red green yellow blue magenta cyan white
 #constant list of values for cards 
 my @color = qw(magenta  green  yellow);
-my @number= qw(1        2      3   );
+my @number= qw(1        2      3);
 my @shape = qw(tria     rect   oval);
 my @fill  = qw(`        +      @   );
 
@@ -48,38 +48,52 @@ my @oval = qw(
 \(@@@@@\)
 .\\@@@/.
 ..---..);
-
 my @form;#shape used for the next card printed
 
-my $columns = 3;
-my $rows = 1;
-
-#parallel arrays to hold deck, and scalers to temporarily hold values during operations
+#scalers to temporarily hold values during operations
+#parallel arrays to hold deck
+#extra set of parallel arrays to hold cards in play (suffix p)
 my $c; my @c; my @cp;#color
 my $n; my @n; my @np;#number
 my $s; my @s; my @sp;#shape
 my $f; my @f; my @fp;#fill
 
-init;
+my $columns = 3;#constant
+my $playfieldsize = 15;#constant
 
-my $line;
-for(1..$rows){
-	#cycle height/rows/lines of ascii shape
-	for my $i (0..$#form){
-		#cycle each card, printing correct row
-		for(0..$columns-1){
-			mold $sp[$_];#make @form a specific shape
-			shade $fp[$_];#make @form a specific fill
-			colorize $cp[$_];#ready output for a color
-			$line = $form[$i] x $np[$_];
-			print $line ." " x (length($form[0])*max(@number)- length($line))." ";
+init;
+printcards;
+
+sub printcards{
+	my $col=$columns;#fluxuates when fewer cards need to be printed
+	my $cardstoprint = @cp;
+	while(1){
+		last if($cardstoprint==0);
+		$col=$cardstoprint if($cardstoprint < $col);
+		$cardstoprint-- for(1..$col);
+		
+		for my $i (0..$#form){#cycle each line in ascii shape
+			for(0..$col-1){#cycle columns
+				mold $sp[$_];#make @form a specific shape
+				shade $fp[$_];#make @form a specific fill
+				colorize $cp[$_];#ready output for a color
+				my $line = $form[$i] x $np[$_];#multiple form by the value of number
+				print $line ." " x (length($form[0])*max(@number)- length($line))." ";
+			}
+		print "\n";
 		}
-	print "\n";
+		
+		for(1..$col){
+			push @cp, shift @cp;
+			push @np, shift @np;
+			push @sp, shift @sp;
+			push @fp, shift @fp;
+		}
 	}
 }
 
 sub init{
-	@form = @rect;#Needs to be initialized for for-loops using a standard shape's array length
+	@form = @rect;#init @form for for-loops that use a standard shape's array length
 	#reset arrays
 	undef @c;undef @n;undef @s;undef @f;
 	undef @cp;undef @np;undef @sp;undef @fp;
@@ -99,7 +113,7 @@ sub init{
 	@f = shuffle(@f);
 	
 	#draw 12 cards to be in play
-	for(1..12){
+	for(1..$playfieldsize){
 		push @cp, pop @c;
 		push @np, pop @n;
 		push @sp, pop @s;
