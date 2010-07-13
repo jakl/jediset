@@ -19,9 +19,45 @@ along with Jedi Set. If not, see <http://www.gnu.org/license/>
 =cut
 
 use strict; use warnings;
+use Getopt::Long;
 use Term::ANSIColor;
 use List::Util qw(shuffle max);
 use subs qw(shade colorize mold init printcards);
+
+my $columns = 4;#Number of columns across the screen
+my $cards = 12;#Number of cards in a new draw
+my $debug = 0;#show debug info
+my $numbers = 0;#bool to toggle on/off the numbers on cards
+my $version = 0; my $help = 0;
+
+GetOptions('debug+' => \$debug, 'numbers' => \$numbers,
+'cards=i' => \$cards, 'columns=i' => \$columns,
+'version' => \$version, 'help' => \$help);
+
+if($help){
+print <<EOF;
+$0 : The Game of Jedi Set, a Terminal Card Game
+
+Running: Press enter to see a new set of cards. Press q then enter to quit.
+           More functionality will be added as the program matures out of alpha.
+
+Syntax: $0 [--help|--version|--debug|--columns=<int>|--numbers|
+               --cards=<int>]
+   
+   --help        : This help message
+   --version     : Print version on standard output and exit
+   --debug       : Enable likely useless debuging output data 
+   --columns     : Specify the number of columns that will fit on your screen
+                   Default = 4
+   --numbers     : Show numbers on the centers of cards
+   --cards       : Number of cards to play with each round
+EOF
+exit 0;
+} elsif ($version) {
+print "$0 1.0 alpha\n";
+exit 0;
+}
+
 
 #all supported colors: black red green yellow blue magenta cyan white
 #constant list of values for cards 
@@ -58,11 +94,12 @@ my $n; my @n; my @np;#number
 my $s; my @s; my @sp;#shape
 my $f; my @f; my @fp;#fill
 
-my $columns = 3;#constant
-my $playfieldsize = 15;#constant
-
+while (1){
 init;
 printcards;
+my $in = <>;
+exit 0 if $in =~ /[qQ]/;
+}
 
 sub printcards{
 	my $col=$columns;#fluxuates when fewer cards need to be printed
@@ -70,7 +107,7 @@ sub printcards{
 	while(1){
 		last if($cardstoprint==0);
 		$col=$cardstoprint if($cardstoprint < $col);
-		$cardstoprint-- for(1..$col);
+		#$cardstoprint-- for(1..$col);
 		
 		for my $i (0..$#form){#cycle each line in ascii shape
 			for(0..$col-1){#cycle columns
@@ -78,6 +115,16 @@ sub printcards{
 				shade $fp[$_];#make @form a specific fill
 				colorize $cp[$_];#ready output for a color
 				my $line = $form[$i] x $np[$_];#multiple form by the value of number
+				print "$cp[$_] $np[$_] $sp[$_] $fp[$_]" if $debug;
+				
+				#display numbers on cards
+				if($i==$#form/2 and $numbers){
+					$line=substr($line,0,length($line)/2). (@cp-$cardstoprint+1) .substr($line,length($line)/2+length (@cp-$cardstoprint+1));
+					$cardstoprint--;
+				}
+				if($i==0 and !$numbers){
+					$cardstoprint--;#each new card that is printed, decrements cards needed to print
+				}
 				print $line ." " x (length($form[0])*max(@number)- length($line))." ";
 			}
 		print "\n";
@@ -101,23 +148,34 @@ sub init{
 	#populate deck with non-repeating cards
 	for $c(0..$#color){for $n(0..$#number){for $s(0..$#shape){for $f(0..$#fill){
 		push @c, $c;
-		push @n, $number[$n];
+		push @n, $number[$n];#save actual number rather than index
 		push @s, $s;
 		push @f, $f;
 	}}}}
+	print "Deck:\n" if $debug;
+	for(0..$#c){
+		print $_+1 ." : $c[$_] $n[$_] $s[$_] $f[$_]\n" if $debug;
+	}
 	
 	#shuffle deck
-	@c = shuffle(@c);
-	@n = shuffle(@n);
-	@s = shuffle(@s);
-	@f = shuffle(@f);
+	my @order = shuffle 0..$#c;#idea from http://stackoverflow.com/users/13/chris-jester-young
+	@c = @c[@order];
+	@n = @n[@order];
+	@s = @s[@order];
+	@f = @f[@order];
+	
 	
 	#draw 12 cards to be in play
-	for(1..$playfieldsize){
+	$cards = 81 if $cards>81;
+	for(1..$cards){
 		push @cp, pop @c;
 		push @np, pop @n;
 		push @sp, pop @s;
 		push @fp, pop @f;
+	}
+	print "Cards In Play:\n" if $debug;
+	for(0..$#cp){
+		print $_+1 ." : $cp[$_] $np[$_] $sp[$_] $fp[$_]\n" if $debug;
 	}
 }
 
