@@ -51,24 +51,24 @@ DESCRIPTION
     See <http://en.wikipedia.org/wiki/Set_(game)>
    
 OPTIONS
---help        : This help message
+--help      : This help message
 
---columns     : Specify the number of columns that will fit on your screen
-                   Range = 1 through 20  else it defaults
-                   Default = $defaultcolumns
---cards       : Specify the number of cards to play with each round
-                   Range = 1 through 81  else it defaults
-                   Default = $defaultcards
---numbers     : Show numbers on the centers of cards
+--columns   : Specify the number of columns that will fit on your screen
+                Range = 1 through 20  else it defaults
+                Default = $defaultcolumns
+--cards     : Specify the number of cards to play with each round
+                Range = 1 through 81  else it defaults
+                Default = $defaultcards
+--numbers   : Show numbers on the centers of cards
 
---version     : Print version on standard output and exit
+--version   : Print version on standard output and exit
 
---debug       : Enable (likely useless) debuging output data 
-                     The data will be of the form: int   int  int   int
-                                                   shape fill color number
-                     shape, fill, and color are indexes:   values 0 through 2
-                     number is saved directly:             values 1 through 3
-                       Note: Look at the code to see the meanings of indexes
+--debug     : Enable (likely useless) debuging output data 
+                The data will be of the form: int   int  int   int
+                                              shape fill color number
+                shape, fill, and color are indexes:   values 0 through 2
+                number is saved directly:             values 1 through 3
+                  Note: Look at the code to see the meanings of indexes
 
 AUTHOR
     Written by James Koval
@@ -127,11 +127,11 @@ my $f; my @f; my @fp;#fill
 my $c; my @c; my @cp;#color
 my $n; my @n; my @np;#number
 
-while (1){
+while(1){
 init;#simply re-shuffle the entire deck every round
 printcards;
-my $in = <>;
-exit 0 if $in =~ /[qQ]/;
+my $tmp = <>;
+exit 0 if $tmp =~ /[qQ]/;
 }
 
 sub printcards{
@@ -157,10 +157,10 @@ sub printcards{
 				#  the second half missing whatever is necessary
 				#  to fit the number. i.e. missing 1 character for <10
 				#  2 characters for >=10 because 10 is 2 characters
-					my $cardnumber = @cp-$cardstoprint+1;
+					my $cardnumber = @cp-$cardstoprint;
 					my $half1 = substr($line,0,length($line)/2);
 					my $half2 = substr($line,length($line)/2+length ($cardnumber));
-					$line = $half1 . ($cardnumber) . $half2 ;
+					$line = $half1.($cardnumber).$half2 ;
 					$cardstoprint--;
 				}
 				
@@ -168,11 +168,13 @@ sub printcards{
 				$cardstoprint-- if($i==0 and !$numbers);
 
 				#print card with enough spacing to fit the maximum number of shapes
-				print $line ." " x (length($form[0])*max(@number)- length($line))." ";
+				#and center card in place
+				my $spaces = (length($form[0])*max(@number)- length($line)+1)/2;
+				print " "x$spaces.$line." "x$spaces." ";
 			}
 		print "\n";
 		}
-		
+
 		#put cards on the other end of the array after being printed
 		for(1..$col){
 			push @sp, shift @sp;
@@ -180,6 +182,10 @@ sub printcards{
 			push @cp, shift @cp;
 			push @np, shift @np;
 		}
+	}
+	if($debug){
+		print "Cards In Play:\n";
+		print $_." "x (3- length ($_+1)) ." $sp[$_] $fp[$_] $cp[$_] $np[$_]\n" for(0..$#sp);
 	}
 }
 
@@ -198,11 +204,12 @@ sub init{
 	}}}}
 	if($debug){
 		print "Deck:\n";
-		print $_+1 . " "x (3- length ($_+1)) . " $s[$_] $f[$_] $c[$_] $n[$_]\n" for(0..$#s);
+		print $_." "x (3- length ($_+1)) . " $s[$_] $f[$_] $c[$_] $n[$_]\n" for(0..$#s);
 	}
 	
 	#shuffle deck
-	my @order = shuffle 0..$#c;#idea from http://stackoverflow.com/users/13/chris-jester-young
+	#idea from http://stackoverflow.com/users/13/chris-jester-young
+	my @order = shuffle 0..$#c;
 	@s = @s[@order];
 	@f = @f[@order];
 	@c = @c[@order];
@@ -210,7 +217,7 @@ sub init{
 
 	if($debug){
 		print "Shuffled Deck:\n";
-		print $_+1 . " "x (3- length ($_+1)) ." $s[$_] $f[$_] $c[$_] $n[$_]\n" for(0..$#s);
+		print $_." "x (3- length ($_+1)) ." $s[$_] $f[$_] $c[$_] $n[$_]\n" for(0..$#s);
 	}
 
 	
@@ -223,7 +230,7 @@ sub init{
 	}
 	if($debug){
 		print "Cards In Play:\n";
-		print $_+1 . " "x (3- length ($_+1)) ." $sp[$_] $fp[$_] $cp[$_] $np[$_]\n" for(0..$#sp);
+		print $_." "x (3- length ($_+1)) ." $sp[$_] $fp[$_] $cp[$_] $np[$_]\n" for(0..$#sp);
 	}
 }
 
