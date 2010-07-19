@@ -32,14 +32,14 @@ my $debug = 0;#show debug info
 my $numbers = 0;#bool to toggle on/off the numbers on cards
 my $version = 0; my $help = 0;
 
-GetOptions('debug+' => \$debug, 'numbers' => \$numbers,
+GetOptions('debug' => \$debug, 'numbers' => \$numbers,
 'cards=i' => \$cards, 'columns=i' => \$columns,
 'version' => \$version, 'help' => \$help);
 
 if($help){
 print <<EOF;
 NAME
-    $0 : The Game of Jedi Set: a pattern matching terminal card game
+    The Game of Jedi Set: a pattern matching terminal card game
 
 USAGE
     $0 [--help|--version|--debug|--columns=<int>|--numbers|
@@ -119,12 +119,11 @@ my @oval = qw(
   ---  );
 my @form;#shape used for the next card printed
 
-my $cardwidth;
+my $cardwidth=0;
 #Find maximum card width
 $cardwidth = $cardwidth > length $_ ? $cardwidth : length $_ for(@rect);
 $cardwidth = $cardwidth > length $_ ? $cardwidth : length $_ for(@tria);
 $cardwidth = $cardwidth > length $_ ? $cardwidth : length $_ for(@oval);
-print "\n\n$cardwidth\n\n";
 
 #scalers to temporarily hold values during operations
 #parallel arrays to hold deck
