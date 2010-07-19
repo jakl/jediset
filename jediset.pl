@@ -100,24 +100,31 @@ my @number= qw(1        2      3      );
 #all supported colors: black red green yellow blue magenta cyan white
 
 my @rect = qw(
-._____.
+ _____
 |@@@@@|
 |@@@@@|
 |@@@@@|
 -------);
 my @tria = qw(
-..._...
-../@\\..
-./@@@\\.
+   _
+  /@\\  
+ /@@@\\ 
 /@@@@@\\
 -------);
 my @oval = qw(
-..___..
-./@@@\\.
+  ___  
+ /@@@\\ 
 \(@@@@@\)
-.\\@@@/.
-..---..);
+ \\@@@/ 
+  ---  );
 my @form;#shape used for the next card printed
+
+my $cardwidth;
+#Find maximum card width
+$cardwidth = $cardwidth > length $_ ? $cardwidth : length $_ for(@rect);
+$cardwidth = $cardwidth > length $_ ? $cardwidth : length $_ for(@tria);
+$cardwidth = $cardwidth > length $_ ? $cardwidth : length $_ for(@oval);
+print "\n\n$cardwidth\n\n";
 
 #scalers to temporarily hold values during operations
 #parallel arrays to hold deck
@@ -130,8 +137,7 @@ my $n; my @n; my @np;#number
 while(1){
 init;#simply re-shuffle the entire deck every round
 printcards;
-my $tmp = <>;
-exit 0 if $tmp =~ /[qQ]/;
+sleep 2;
 }
 
 sub printcards{
@@ -145,7 +151,9 @@ sub printcards{
 				mold $sp[$_];#make @form a specific shape
 				shade $fp[$_];#make @form a specific fill
 				colorize $cp[$_];#ready output for a color
-				my $line = $form[$i] x $np[$_];#put the right number of shapes on a line
+				my $spaces = " "x(($cardwidth-length $form[$i])/2);
+				my $line = $spaces.$form[$i].$spaces;#space the shapes out
+				$line x= $np[$_];#put the right number of shapes on a line
 
 				#show card's variable values beside card
 				print "$sp[$_] $fp[$_] $cp[$_] $np[$_]" if $debug;
@@ -169,8 +177,8 @@ sub printcards{
 
 				#print card with enough spacing to fit the maximum number of shapes
 				#and center card in place
-				my $spaces = (length($form[0])*max(@number)- length($line)+1)/2;
-				print " "x$spaces.$line." "x$spaces." ";
+				$spaces = " "x(($cardwidth*max(@number)- length($line))/2);
+				print $spaces.$line.$spaces." ";
 			}
 		print "\n";
 		}
