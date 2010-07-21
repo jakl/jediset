@@ -1,8 +1,13 @@
+RUNNING
+  This program requires perl and the following standard perl libraries which
+  you probably won't have to install manually because they come with perl:
+    Getopt::Long, Term::ANSIColor, List::Util
+
 NAME
-    Jedi Set : The Game of Jedi Set: a pattern matching terminal card game
+    The Game of Jedi Set: a pattern matching terminal card game
 
 USAGE
-    jediset.pl [--help|--version|--debug|--columns=<int>|--numbers|
+    ./jediset [--help|--version|--debug|--rows=<int>|--numbers|
                        --cards=<int>]
 
     Press enter to see a new set of cards. Press q then enter to quit.
@@ -11,24 +16,29 @@ DESCRIPTION
     See <http://en.wikipedia.org/wiki/Set_(game)>
    
 OPTIONS
---help        : This help message
+--help    -h : This help message
 
---columns     : Specify the number of columns that will fit on your screen
-                   Range = 1 through 20  else it defaults
-                   Default = 4
---cards       : Specify the number of cards to play with each round
-                   Range = 1 through 81  else it defaults
-                   Default = 12
---numbers     : Show numbers on the centers of cards
+--rows    -r : Specify the number of rows that will fit on your screen
+                   Vertical rows (aka: columns)
+                 Range = 1 through 20  else it defaults
+                 Default = 4
+--cards   -c : Specify the number of cards to play with each round
+                 Range = 1 through 81  else it defaults
+                 Default = 12
+--numbers -n : Show numbers on the centers of cards
 
---version     : Print version on standard output and exit
+--version -v : Print version on standard output and exit
 
---debug       : Enable (likely useless) debuging output data 
-                     The data will be of the form: int   int  int   int
-                                                   shape fill color number
-                     shape, fill, and color are indexes:   values 0 through 2
-                     number is saved directly:             values 1 through 3
-                       Note: Look at the code to see the meanings of indexes
+--debug   -d : Enable (likely useless) debuging output data 
+                 The data will be of the form: int   int  int   int
+                                               shape fill color number
+                 shape, fill, and color are indexes:   values 0 through 2
+                 number is saved directly:             values 1 through 3
+                   Note: Look at the code to see the meanings of indexes
+
+Option names may be the smallest unique abbreviation of the full names
+  shown above
+Full or abbreviated options may be preceded by one - or two -- dashes
 
 AUTHOR
     Written by James Koval
@@ -40,30 +50,3 @@ COPYRIGHT
     <http://gnu.org/licenses/gpl.html>
     This is free software; you are free to change and redistribute it
     There is NO WARRANTY, to the extent permitted by law
- 
-
-Jedi Set displays games of set using ascii art directly in the terminal.
-Set is a game of visual pattern matching. Each card has 4 variables and 3 values for each. Be the first to find a set of 3 cards where each variable across all 3 cards is the same or different throughout.
-
-Variables: Shape    Fill Color  Number
-Values:    triangle @    pink   1
-           oval     +    yellow 2
-           rect     `    green  3
-
-This is the game being run:
-./jediset --columns=3 --cards=9
-                      ..._...               ..._......_...        
-                      ../+\..               ../+\..../+\..        
-                      ./+++\.               ./+++\../+++\.        
-                      /+++++\               /+++++\/+++++\        
-                      -------               --------------        
-..___..               ..___....___..        ._____.._____.._____. 
-./```\.               ./+++\../+++\.        |+++++||+++++||+++++| 
-(`````)               (+++++)(+++++)        |+++++||+++++||+++++| 
-.\```/.               .\+++/..\+++/.        |+++++||+++++||+++++| 
-..---..               ..---....---..        --------------------- 
-..._......_......_... ._____.._____.._____. ..._...               
-../+\..../+\..../+\.. |@@@@@||@@@@@||@@@@@| ../`\..               
-./+++\../+++\../+++\. |@@@@@||@@@@@||@@@@@| ./```\.               
-/+++++\/+++++\/+++++\ |@@@@@||@@@@@||@@@@@| /`````\               
---------------------- --------------------- -------               

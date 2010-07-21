@@ -24,8 +24,8 @@ use Term::ANSIColor;
 use List::Util qw(shuffle max);
 use subs qw(shade colorize mold init printcards);
 
-my $defaultcolumns = 4;#defaults used for help screen
-my $columns = $defaultcolumns;#Number of columns across the screen
+my $defaultrows = 4;#defaults used for help screen
+my $rows = $defaultrows;#Number of rows across the screen
 my $defaultcards = 12;
 my $cards = $defaultcards;#Number of cards in a new draw
 my $debug = 0;#show debug info
@@ -33,7 +33,7 @@ my $numbers = 0;#bool to toggle on/off the numbers on cards
 my $version = 0; my $help = 0;
 
 GetOptions('debug' => \$debug, 'numbers' => \$numbers,
-'cards=i' => \$cards, 'columns=i' => \$columns,
+'cards=i' => \$cards, 'rows=i' => \$rows,
 'version' => \$version, 'help' => \$help);
 
 if($help){
@@ -42,7 +42,7 @@ NAME
     The Game of Jedi Set: a pattern matching terminal card game
 
 USAGE
-    $0 [--help|--version|--debug|--columns=<int>|--numbers|
+    $0 [--help|--version|--debug|--rows=<int>|--numbers|
                        --cards=<int>]
 
     Press enter to see a new set of cards. Press q then enter to quit.
@@ -51,24 +51,29 @@ DESCRIPTION
     See <http://en.wikipedia.org/wiki/Set_(game)>
    
 OPTIONS
---help      : This help message
+--help    -h : This help message
 
---columns   : Specify the number of columns that will fit on your screen
-                Range = 1 through 20  else it defaults
-                Default = $defaultcolumns
---cards     : Specify the number of cards to play with each round
-                Range = 1 through 81  else it defaults
-                Default = $defaultcards
---numbers   : Show numbers on the centers of cards
+--rows    -r : Specify the number of rows that will fit on your screen
+                   Vertical rows (aka: columns)
+                 Range = 1 through 20  else it defaults
+                 Default = $defaultrows
+--cards   -c : Specify the number of cards to play with each round
+                 Range = 1 through 81  else it defaults
+                 Default = $defaultcards
+--numbers -n : Show numbers on the centers of cards
 
---version   : Print version on standard output and exit
+--version -v : Print version on standard output and exit
 
---debug     : Enable (likely useless) debuging output data 
-                The data will be of the form: int   int  int   int
-                                              shape fill color number
-                shape, fill, and color are indexes:   values 0 through 2
-                number is saved directly:             values 1 through 3
-                  Note: Look at the code to see the meanings of indexes
+--debug   -d : Enable (likely useless) debuging output data 
+                 The data will be of the form: int   int  int   int
+                                               shape fill color number
+                 shape, fill, and color are indexes:   values 0 through 2
+                 number is saved directly:             values 1 through 3
+                   Note: Look at the code to see the meanings of indexes
+
+Option names may be the smallest unique abbreviation of the full names
+  shown above
+Full or abbreviated options may be preceded by one - or two -- dashes
 
 AUTHOR
     Written by James Koval
@@ -89,7 +94,7 @@ if ($version) {
 }
 #bounds checks
 $cards   = $defaultcards   if($cards   <1 or $cards   > 81);
-$columns = $defaultcolumns if($columns <1 or $columns > 21);
+$rows = $defaultrows if($rows <1 or $rows > 21);
 
 
 #constant list of values for cards 
@@ -136,22 +141,23 @@ my $n; my @n; my @np;#number
 while(1){
 init;#simply re-shuffle the entire deck every round
 printcards;
-sleep 2;
+my $inp = <>;
+exit 0 if $inp =~ /[qQ]/;
 }
 
 sub printcards{
-	my $col=$columns;#fluxuates when fewer cards need to be printed
+	my $row=$rows;#fluxuates when fewer cards need to be printed
 	my $cardstoprint = @sp;
 	while($cardstoprint){
-		$col=$cardstoprint if($cardstoprint < $col);
+		$row=$cardstoprint if($cardstoprint < $row);
 		
 		for my $i (0..$#form){#cycle each line in ascii shape
-			for(0..$col-1){#cycle columns
+			for(0..$row-1){#cycle rows
 				mold $sp[$_];#make @form a specific shape
 				shade $fp[$_];#make @form a specific fill
 				colorize $cp[$_];#ready output for a color
 				my $spaces = " "x(($cardwidth-length $form[$i])/2);
-				my $line = $spaces.$form[$i].$spaces;#space the shapes out
+				my $line = $spaces.$form[$i].$spaces;#center and space the shapes out
 				$line x= $np[$_];#put the right number of shapes on a line
 
 				#show card's variable values beside card
@@ -167,7 +173,9 @@ sub printcards{
 					my $cardnumber = @cp-$cardstoprint;
 					my $half1 = substr($line,0,length($line)/2);
 					my $half2 = substr($line,length($line)/2+length ($cardnumber));
-					$line = $half1.($cardnumber).$half2 ;
+					my $colorstart = color $color[ $cp[$_]+1 > $#color ? 0 : $cp[$_]+1];
+					my $colorend = color $color[$cp[$_]];
+					$line = $half1.$colorstart.($cardnumber).$colorend.$half2;
 					$cardstoprint--;
 				}
 				
@@ -176,14 +184,14 @@ sub printcards{
 
 				#print card with enough spacing to fit the maximum number of shapes
 				#and center card in place
-				$spaces = " "x(($cardwidth*max(@number)- length($line))/2);
-				print $spaces.$line.$spaces." ";
+				$spaces = $cardwidth*max(@number)- length($line);
+				print " "x($spaces/2).$line." "x($spaces/2+($spaces%2 ? 1:0))." ";
 			}
 		print "\n";
 		}
 
 		#put cards on the other end of the array after being printed
-		for(1..$col){
+		for(1..$row){
 			push @sp, shift @sp;
 			push @fp, shift @fp;
 			push @cp, shift @cp;
