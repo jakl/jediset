@@ -22,7 +22,7 @@ use strict; use warnings;
 use Getopt::Long;
 use Term::ANSIColor;
 use List::Util qw(shuffle max);
-use subs qw(shade colorize mold init printcards);
+use subs qw(shade colorize mold init printcards draw redraw);
 
 my $defaultrows = 4;#defaults used for help screen
 my $rows = $defaultrows;#Number of rows across the screen
@@ -134,16 +134,24 @@ $cardwidth = $cardwidth > length $_ ? $cardwidth : length $_ for(@oval);
 #scalers to temporarily hold values during operations
 #parallel arrays to hold deck
 #extra set of parallel arrays to hold cards in play (suffix p)
-my $s; my @s; my @sp;#shape
-my $f; my @f; my @fp;#fill
-my $c; my @c; my @cp;#color
-my $n; my @n; my @np;#number
+#extra set of parallel arrays to hold cards in graveyard (suffix g)
+my $s; my @s; my @sp; my @sg;#shape
+my $f; my @f; my @fp; my @fg;#fill
+my $c; my @c; my @cp; my @cg;#color
+my $n; my @n; my @np; my @ng;#number
 
-while(1){
+#pseudo-parallel array remembers who found a set
+#indexes into graveyard by x3 because it remembers who found a set
+# not individual cards, and sets are always groups of 3 cards
+my @points;
+
+#game loop
 init;#simply re-shuffle the entire deck every round
+while(1){
 printcards;
 my $tmp = <>;
 exit 0 if $tmp =~ /[qQ]/;
+redraw;
 }
 
 sub printcards{
@@ -204,6 +212,35 @@ sub printcards{
 	if($debug){
 		print "Cards In Play:\n";
 		print $_." "x(3- length $_) ." $sp[$_] $fp[$_] $cp[$_] $np[$_]\n" for(0..$#sp);
+	}
+}
+
+sub redraw{
+	if(not scalar @sp){
+		return 0;
+	}
+	for(0..$#sp){
+		push @sg, pop @sp;
+		push @fg, pop @fp;
+		push @cg, pop @cp;
+		push @ng, pop @np;
+	}
+	draw;
+}
+
+sub draw{
+	if(not scalar @s){
+		return 0;
+	}
+	for(1..($cards-@sp)){
+		push @sp, pop @s;
+		push @fp, pop @f;
+		push @cp, pop @c;
+		push @np, pop @n;
+	}
+	if($debug){
+		print "Cards In Play:\n";
+		print $_." "x (3- length $_) ." $sp[$_] $fp[$_] $cp[$_] $np[$_]\n" for(0..$#sp);
 	}
 }
 
