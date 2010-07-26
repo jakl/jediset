@@ -129,7 +129,7 @@ my $n; my @n; my @np;#number
 
 while(1){
 init;#simply re-shuffle the entire deck every round
-printcards;
+printcards;print color 'clear';
 my $tmp = <>;
 exit 0 if $tmp =~ /[qQ]/;
 }
