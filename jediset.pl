@@ -104,6 +104,7 @@ my @color = qw(magenta  green  yellow );
 my @number= qw(1        2      3      );
 #all supported colors: black red green yellow blue magenta cyan white
 
+#keep these an odd number across
 my @rect = qw(
  _____
 |@@@@@|
@@ -140,7 +141,7 @@ my $n; my @n; my @np;#number
 
 while(1){
 init;#simply re-shuffle the entire deck every round
-printcards;print color 'clear';
+printcards;
 my $tmp = <>;
 exit 0 if $tmp =~ /[qQ]/;
 }
@@ -163,19 +164,20 @@ sub printcards{
 				#show card's variable values beside card
 				print "$sp[$_] $fp[$_] $cp[$_] $np[$_]" if $debug;
 				
+				my $color1 = "";my $color2 = "";#require larger scope for space calculation
 				#display numbers on cards
 				if($i==$#form/2 and $numbers){
 				#grab the first half of the middle line in a card
 				#  and combine it with the card's number plus
 				#  the second half missing whatever is necessary
 				#  to fit the number. i.e. missing 1 character for <10
-				#  2 characters for >=10 because 10 is 2 characters
+				#  2 characters for >=10 <100 because 10 is 2 characters
 					my $cardnumber = @cp-$cardstoprint;
 					my $half1 = substr($line,0,length($line)/2);
 					my $half2 = substr($line,length($line)/2+length ($cardnumber));
-					my $colorstart = color $color[ $cp[$_]+1 > $#color ? 0 : $cp[$_]+1];
-					my $colorend = color $color[$cp[$_]];
-					$line = $half1.$colorstart.($cardnumber).$colorend.$half2;
+					$color1 = color $color[ $cp[$_]+1 > $#color ? 0 : $cp[$_]+1];
+					$color2 = color $color[$cp[$_]];
+					$line = $half1.$color1.$cardnumber.$color2.$half2;
 					$cardstoprint--;
 				}
 				
@@ -184,9 +186,10 @@ sub printcards{
 
 				#print card with enough spacing to fit the maximum number of shapes
 				#and center card in place
-				$spaces = $cardwidth*max(@number)- length($line);
+				$spaces = $cardwidth*max(@number)-length($line)+length($color1)+length($color2);
 				print " "x($spaces/2).$line." "x($spaces/2+($spaces%2 ? 1:0))." ";
 			}
+		print color 'clear';
 		print "\n";
 		}
 
@@ -200,7 +203,7 @@ sub printcards{
 	}
 	if($debug){
 		print "Cards In Play:\n";
-		print $_." "x (3- length ($_+1)) ." $sp[$_] $fp[$_] $cp[$_] $np[$_]\n" for(0..$#sp);
+		print $_." "x(3- length $_) ." $sp[$_] $fp[$_] $cp[$_] $np[$_]\n" for(0..$#sp);
 	}
 }
 
@@ -219,7 +222,7 @@ sub init{
 	}}}}
 	if($debug){
 		print "Deck:\n";
-		print $_." "x (3- length ($_+1)) . " $s[$_] $f[$_] $c[$_] $n[$_]\n" for(0..$#s);
+		print $_." "x(3- length $_) . " $s[$_] $f[$_] $c[$_] $n[$_]\n" for(0..$#s);
 	}
 	
 	#shuffle deck
@@ -232,7 +235,7 @@ sub init{
 
 	if($debug){
 		print "Shuffled Deck:\n";
-		print $_." "x (3- length ($_+1)) ." $s[$_] $f[$_] $c[$_] $n[$_]\n" for(0..$#s);
+		print $_." "x(3- length $_) ." $s[$_] $f[$_] $c[$_] $n[$_]\n" for(0..$#s);
 	}
 
 	
@@ -245,7 +248,7 @@ sub init{
 	}
 	if($debug){
 		print "Cards In Play:\n";
-		print $_." "x (3- length ($_+1)) ." $sp[$_] $fp[$_] $cp[$_] $np[$_]\n" for(0..$#sp);
+		print $_." "x (3- length $_) ." $sp[$_] $fp[$_] $cp[$_] $np[$_]\n" for(0..$#sp);
 	}
 }
 
