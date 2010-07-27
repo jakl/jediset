@@ -215,11 +215,34 @@ sub printcards{
 	}
 }
 
+sub pick{
+	#indexes into the cards in play parallel arrays i.e. @sp
+	my $card1 = shift;
+	my $card2 = shift;
+	my $card3 = shift;
+	#name of player who found set
+	my $name = shift; push @points, $name;
+	#remove card from play and put in graveyard
+	push @sg, $sp[$card1];splice @sp, $card1, 1;
+	push @fg, $fp[$card1];splice @fp, $card1, 1;
+	push @cg, $cp[$card1];splice @cp, $card1, 1;
+	push @ng, $np[$card1];splice @np, $card1, 1;
+	push @sg, $sp[$card2];splice @sp, $card2, 1;
+	push @fg, $fp[$card2];splice @fp, $card2, 1;
+	push @cg, $cp[$card2];splice @cp, $card2, 1;
+	push @ng, $np[$card2];splice @np, $card2, 1;
+	push @sg, $sp[$card3];splice @sp, $card3, 1;
+	push @fg, $fp[$card3];splice @fp, $card3, 1;
+	push @cg, $cp[$card3];splice @cp, $card3, 1;
+	push @ng, $np[$card3];splice @np, $card3, 1;
+	draw;
+}
+
 sub redraw{
-	if(not scalar @sp){
-		return 0;
-	}
 	for(0..$#sp){
+		if(not scalar @sp){
+			return 0;
+		}
 		push @sg, pop @sp;
 		push @fg, pop @fp;
 		push @cg, pop @cp;
@@ -229,10 +252,10 @@ sub redraw{
 }
 
 sub draw{
-	if(not scalar @s){
-		return 0;
-	}
 	for(1..($cards-@sp)){
+		if(not scalar @s){
+			return 0;
+		}
 		push @sp, pop @s;
 		push @fp, pop @f;
 		push @cp, pop @c;
