@@ -22,7 +22,7 @@ use strict; use warnings;
 use Getopt::Long;
 use Term::ANSIColor;
 use List::Util qw(shuffle max);
-use subs qw(shade colorize mold init printcards draw redraw);
+use subs qw(shade colorize mold init printcards draw redraw pick menu);
 
 my $defaultrows = 4;#defaults used for help screen
 my $rows = $defaultrows;#Number of rows across the screen
@@ -146,12 +146,10 @@ my $n; my @n; my @np; my @ng;#number
 my @points;
 
 #game loop
-init;#simply re-shuffle the entire deck every round
+init;#gen deck
 while(1){
-printcards;
-my $tmp = <>;
-exit 0 if $tmp =~ /[qQ]/;
-redraw;
+printcards;#show playing field
+menu;#show menu and quit if q
 }
 
 sub printcards{
@@ -309,6 +307,23 @@ sub init{
 	if($debug){
 		print "Cards In Play:\n";
 		print $_." "x (3- length $_) ." $sp[$_] $fp[$_] $cp[$_] $np[$_]\n" for(0..$#sp);
+	}
+}
+
+sub menu{
+	print "(q)uit (p)ick: ";
+	my $tmp = <>;
+	exit 0 if $tmp =~ /[qQ]/;
+	if ($tmp =~ /[pP]/){
+		print "Enter player: " ;
+		my $name = <>;
+		print "Enter first card: ";
+		my $card1 = <>;
+		print "Enter second card: ";
+		my $card2 = <>;
+		print "Enter third card: ";
+		my $card3 = <>;
+		pick($card1, $card2, $card3, $name);
 	}
 }
 
