@@ -24,17 +24,18 @@ use Term::ANSIColor;
 use List::Util qw(shuffle max);
 use subs qw(init shade colorize mold);
 use subs qw(debugplay debugdeck);
-use subs qw(printcards menu pick draw discard);
+use subs qw(printcards printscores menu pick draw discard);
 
 my $defaultrows = 4;#defaults used for help screen
 my $rows = $defaultrows;#Number of rows across the screen
 my $defaultcards = 12;
 my $cards = $defaultcards;#Number of cards in a new draw
-my $debug = 0;#show debug info
-my $numbers = 0;#bool to toggle on/off the numbers on cards
-my $version = 0; my $help = 0;
+my $debug=0;#show debug info
+my $defaultnumbers = 1;
+my $numbers;#bool to toggle on/off the numbers on cards
+my $version; my $help;
 
-GetOptions('debug' => \$debug, 'numbers' => \$numbers,
+GetOptions('debug+' => \$debug, 'numbers' => \$numbers,
 'cards=i' => \$cards, 'rows=i' => \$rows,
 'version' => \$version, 'help' => \$help);
 
@@ -62,11 +63,12 @@ OPTIONS
 --cards   -c : Specify the number of cards to play with each round
                  Range = 1 through 81  else it defaults
                  Default = $defaultcards
---numbers -n : Show numbers on the centers of cards
+--numbers -n : Toggle numbers on the centers of cards off
 
 --version -v : Print version on standard output and exit
 
 --debug   -d : Enable (likely useless) debuging output data 
+                 Use this option multiple times for more verbosity
                  The data will be of the form: int   int  int   int
                                                shape fill color number
                  shape, fill, and color are indexes:   values 0 through 2
@@ -94,8 +96,15 @@ if ($version) {
 	print "$0 1.0 alpha\n";
 	exit 0;
 }
+if($numbers){
+	$numbers = 0;#set to toggle it off
+}
+else{
+	$numbers = $defaultnumbers;
+}
+
 #bounds checks
-$cards   = $defaultcards   if($cards   <1 or $cards   > 81);
+$cards = $defaultcards if($cards <1 or $cards > 81);
 $rows = $defaultrows if($rows <1 or $rows > 21);
 
 
@@ -145,7 +154,7 @@ my $n; my @n; my @np; my @ng;#number
 #pseudo-parallel array remembers who found a set
 #indexes into graveyard by x3 because it remembers who found a set
 # not individual cards, and sets are always groups of 3 cards
-my @points;
+my %scores;
 
 #game loop
 init;#gen deck
@@ -155,35 +164,52 @@ menu;#show menu and handle input
 }
 
 sub menu{
-	print "(q)uit (p)ick (a)dd1card: ";
-	my $tmp = <>;
+	print "(q)uit (p)ick (a)dd1card (s)cores (n)umbersToggle: ";
+	my $tmp = <>; chomp $tmp;
 	exit 0 if $tmp =~ /q/i;#quit, case (i)nsensitive
 	if ($tmp =~ /p/i){#pick
+		print "Names may be the smallest unique abbreviation...\n";
 		print "Enter player: " ;
-		my $name = <>;
+		chomp (my $name = <>);
 		print "Enter first card: ";
-		my $card1 = <>;
+		chomp (my $card1 = <>);
 		print "Enter second card: ";
-		my $card2 = <>;
+		chomp (my $card2 = <>);
 		print "Enter third card: ";
-		my $card3 = <>;
-		pick($card1, $card2, $card3, $name);
+		chomp (my $card3 = <>);
+		pick($name, $card1, $card2, $card3);
 	}
 	draw if $tmp =~ /a/i;
+	printscores if $tmp =~ /s/i;
+	$numbers = not $numbers if $tmp =~ /n/i;
 
-	
 }
 
 sub pick{
-	#first 3 args are indexes to the cards
-	#go ahead and move them to the graveyard
-	discard shift;
-	discard shift;
-	discard shift;
-	#name of player who found set
-	my $name = shift; push @points, $name;
-	draw;draw;draw;
-	debugplay if $debug;
+	my $name = shift;
+
+	#next 3 args are indexes to the cards
+	#go ahead and move them to the graveyard and get new ones
+	discard sort {$b <=> $a} @_[0..2];
+	draw; draw; draw;
+	debugplay if $debug>1;
+
+	my $match = 0;
+	for(keys %scores){
+		if($name =~ /^$_/i){#name contains key
+			$scores{$name} = delete $scores{$_};
+			$scores{$name}++;
+			$match = 1;
+			last;
+		}
+		if(/^$name/i){#key contains name
+			$scores{$_}++;
+			$match = 1;
+			last;
+		}
+	}
+	$scores{$name}++ unless $match;
+	printscores;
 }
 
 sub init{
@@ -200,7 +226,7 @@ sub init{
 		push @c, $c;
 		push @n, $number[$n];#save actual number rather than index
 	}}}}
-	debugdeck if $debug;
+	debugdeck if $debug>1;
 
 	#shuffle deck
 	#idea from http://stackoverflow.com/users/13/chris-jester-young
@@ -210,20 +236,21 @@ sub init{
 	@c = @c[@order];
 	@n = @n[@order];
 
-	debugdeck if $debug;
+	debugdeck if $debug>1;
 	
 	#draw cards to be in play
 	draw for(1..$cards);
 
-	debugplay if $debug;
+	debugplay if $debug>1;
 }
 
 sub discard{
-	my $card = shift;
-	push @sg, $sp[$card];splice @sp, $card, 1;
-	push @fg, $fp[$card];splice @fp, $card, 1;
-	push @cg, $cp[$card];splice @cp, $card, 1;
-	push @ng, $np[$card];splice @np, $card, 1;
+	for (@_){
+		push @sg, $sp[$_];splice @sp, $_, 1;
+		push @fg, $fp[$_];splice @fp, $_, 1;
+		push @cg, $cp[$_];splice @cp, $_, 1;
+		push @ng, $np[$_];splice @np, $_, 1;
+	}
 }
 
 #take a card from end of deck, and put onto end of cards in play
@@ -236,15 +263,11 @@ sub draw{
 	push @np, pop @n;
 }
 
-#not finished
-sub printscore{
-	my @players;
-	my @scores;
-	for my $point (@points){
-		for my $player (@players){
-			#learn hashes already ... sheesh
-		}
+sub printscores{
+	for(keys %scores){
+		print $_.": ".$scores{$_}."   ";
 	}
+	print "\n";
 }
 
 sub debugdeck{
@@ -273,7 +296,7 @@ sub printcards{
 				$line x= $np[$_];#put the right number of shapes on a line
 
 				#show card's variable values beside card
-				print "$sp[$_] $fp[$_] $cp[$_] $np[$_]" if $debug;
+				print "$sp[$_] $fp[$_] $cp[$_] $np[$_]" if $debug>1;
 				
 				my $color1 = "";my $color2 = "";#require larger scope for space calculation
 				#display numbers on cards
@@ -312,10 +335,7 @@ sub printcards{
 			push @np, shift @np;
 		}
 	}
-	if($debug){
-		print "Cards In Play:\n";
-		print $_." "x(3- length $_) ." $sp[$_] $fp[$_] $cp[$_] $np[$_]\n" for(0..$#sp);
-	}
+	debugplay if $debug>1;
 }
 
 #Put a shape in @form, randomly or by index into @shape from argument
