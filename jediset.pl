@@ -22,7 +22,9 @@ use strict; use warnings;
 use Getopt::Long;
 use Term::ANSIColor;
 use List::Util qw(shuffle max);
-use subs qw(shade colorize mold init printcards draw redraw pick menu);
+use subs qw(init shade colorize mold);
+use subs qw(debugplay debugdeck);
+use subs qw(printcards menu pick draw discard);
 
 my $defaultrows = 4;#defaults used for help screen
 my $rows = $defaultrows;#Number of rows across the screen
@@ -149,7 +151,110 @@ my @points;
 init;#gen deck
 while(1){
 printcards;#show playing field
-menu;#show menu and quit if q
+menu;#show menu and handle input
+}
+
+sub menu{
+	print "(q)uit (p)ick (a)dd1card: ";
+	my $tmp = <>;
+	exit 0 if $tmp =~ /q/i;#quit, case (i)nsensitive
+	if ($tmp =~ /p/i){#pick
+		print "Enter player: " ;
+		my $name = <>;
+		print "Enter first card: ";
+		my $card1 = <>;
+		print "Enter second card: ";
+		my $card2 = <>;
+		print "Enter third card: ";
+		my $card3 = <>;
+		pick($card1, $card2, $card3, $name);
+	}
+	draw if $tmp =~ /a/i;
+
+	
+}
+
+sub pick{
+	#first 3 args are indexes to the cards
+	#go ahead and move them to the graveyard
+	discard shift;
+	discard shift;
+	discard shift;
+	#name of player who found set
+	my $name = shift; push @points, $name;
+	draw;draw;draw;
+	debugplay if $debug;
+}
+
+sub init{
+	#init @form for for-loops that use a standard shape's array length
+	@form = @rect;
+	#reset arrays
+	undef @s;undef @f;undef @c;undef @n;
+	undef @sp;undef @fp;undef @cp;undef @np;
+
+	#populate deck with non-repeating cards
+	for $s(0..$#shape){for $f(0..$#fill){for $c(0..$#color){for $n(0..$#number){
+		push @s, $s;
+		push @f, $f;
+		push @c, $c;
+		push @n, $number[$n];#save actual number rather than index
+	}}}}
+	debugdeck if $debug;
+
+	#shuffle deck
+	#idea from http://stackoverflow.com/users/13/chris-jester-young
+	my @order = shuffle 0..$#c;
+	@s = @s[@order];
+	@f = @f[@order];
+	@c = @c[@order];
+	@n = @n[@order];
+
+	debugdeck if $debug;
+	
+	#draw cards to be in play
+	draw for(1..$cards);
+
+	debugplay if $debug;
+}
+
+sub discard{
+	my $card = shift;
+	push @sg, $sp[$card];splice @sp, $card, 1;
+	push @fg, $fp[$card];splice @fp, $card, 1;
+	push @cg, $cp[$card];splice @cp, $card, 1;
+	push @ng, $np[$card];splice @np, $card, 1;
+}
+
+#take a card from end of deck, and put onto end of cards in play
+#return false if deck is empty
+sub draw{
+	return 0 if not scalar @s;#can't draw if deck is empty
+	push @sp, pop @s;
+	push @fp, pop @f;
+	push @cp, pop @c;
+	push @np, pop @n;
+}
+
+#not finished
+sub printscore{
+	my @players;
+	my @scores;
+	for my $point (@points){
+		for my $player (@players){
+			#learn hashes already ... sheesh
+		}
+	}
+}
+
+sub debugdeck{
+		print "Shuffled Deck:\n";
+		print $_." "x(3- length $_) ." $s[$_] $f[$_] $c[$_] $n[$_]\n" for(0..$#s);
+}
+
+sub debugplay{
+	print "Cards In Play:\n";
+	print $_." "x (3- length $_) ." $sp[$_] $fp[$_] $cp[$_] $np[$_]\n" for(0..$#sp);
 }
 
 sub printcards{
@@ -210,120 +315,6 @@ sub printcards{
 	if($debug){
 		print "Cards In Play:\n";
 		print $_." "x(3- length $_) ." $sp[$_] $fp[$_] $cp[$_] $np[$_]\n" for(0..$#sp);
-	}
-}
-
-sub pick{
-	#indexes into the cards in play parallel arrays i.e. @sp
-	my $card1 = shift;
-	my $card2 = shift;
-	my $card3 = shift;
-	#name of player who found set
-	my $name = shift; push @points, $name;
-	#remove card from play and put in graveyard
-	push @sg, $sp[$card1];splice @sp, $card1, 1;
-	push @fg, $fp[$card1];splice @fp, $card1, 1;
-	push @cg, $cp[$card1];splice @cp, $card1, 1;
-	push @ng, $np[$card1];splice @np, $card1, 1;
-	push @sg, $sp[$card2];splice @sp, $card2, 1;
-	push @fg, $fp[$card2];splice @fp, $card2, 1;
-	push @cg, $cp[$card2];splice @cp, $card2, 1;
-	push @ng, $np[$card2];splice @np, $card2, 1;
-	push @sg, $sp[$card3];splice @sp, $card3, 1;
-	push @fg, $fp[$card3];splice @fp, $card3, 1;
-	push @cg, $cp[$card3];splice @cp, $card3, 1;
-	push @ng, $np[$card3];splice @np, $card3, 1;
-	draw;
-}
-
-sub redraw{
-	for(0..$#sp){
-		if(not scalar @sp){
-			return 0;
-		}
-		push @sg, pop @sp;
-		push @fg, pop @fp;
-		push @cg, pop @cp;
-		push @ng, pop @np;
-	}
-	draw;
-}
-
-sub draw{
-	for(1..($cards-@sp)){
-		if(not scalar @s){
-			return 0;
-		}
-		push @sp, pop @s;
-		push @fp, pop @f;
-		push @cp, pop @c;
-		push @np, pop @n;
-	}
-	if($debug){
-		print "Cards In Play:\n";
-		print $_." "x (3- length $_) ." $sp[$_] $fp[$_] $cp[$_] $np[$_]\n" for(0..$#sp);
-	}
-}
-
-sub init{
-	@form = @rect;#init @form for for-loops that use a standard shape's array length
-	#reset arrays
-	undef @s;undef @f;undef @c;undef @n;
-	undef @sp;undef @fp;undef @cp;undef @np;
-
-	#populate deck with non-repeating cards
-	for $s(0..$#shape){for $f(0..$#fill){for $c(0..$#color){for $n(0..$#number){
-		push @s, $s;
-		push @f, $f;
-		push @c, $c;
-		push @n, $number[$n];#save actual number rather than index
-	}}}}
-	if($debug){
-		print "Deck:\n";
-		print $_." "x(3- length $_) . " $s[$_] $f[$_] $c[$_] $n[$_]\n" for(0..$#s);
-	}
-	
-	#shuffle deck
-	#idea from http://stackoverflow.com/users/13/chris-jester-young
-	my @order = shuffle 0..$#c;
-	@s = @s[@order];
-	@f = @f[@order];
-	@c = @c[@order];
-	@n = @n[@order];
-
-	if($debug){
-		print "Shuffled Deck:\n";
-		print $_." "x(3- length $_) ." $s[$_] $f[$_] $c[$_] $n[$_]\n" for(0..$#s);
-	}
-
-	
-	#draw cards to be in play
-	for(1..$cards){
-		push @sp, pop @s;
-		push @fp, pop @f;
-		push @cp, pop @c;
-		push @np, pop @n;
-	}
-	if($debug){
-		print "Cards In Play:\n";
-		print $_." "x (3- length $_) ." $sp[$_] $fp[$_] $cp[$_] $np[$_]\n" for(0..$#sp);
-	}
-}
-
-sub menu{
-	print "(q)uit (p)ick: ";
-	my $tmp = <>;
-	exit 0 if $tmp =~ /[qQ]/;
-	if ($tmp =~ /[pP]/){
-		print "Enter player: " ;
-		my $name = <>;
-		print "Enter first card: ";
-		my $card1 = <>;
-		print "Enter second card: ";
-		my $card2 = <>;
-		print "Enter third card: ";
-		my $card3 = <>;
-		pick($card1, $card2, $card3, $name);
 	}
 }
 
