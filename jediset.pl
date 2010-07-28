@@ -48,8 +48,6 @@ USAGE
     $0 [--help|--version|--debug|--rows=<int>|--numbers|
                        --cards=<int>]
 
-    Press enter to see a new set of cards. Press q then enter to quit.
-
 DESCRIPTION
     See <http://en.wikipedia.org/wiki/Set_(game)>
    
@@ -75,9 +73,18 @@ OPTIONS
                  number is saved directly:             values 1 through 3
                    Note: Look at the code to see the meanings of indexes
 
-Option names may be the smallest unique abbreviation of the full names
+Option names may be the shortest unique abbreviation of the full names
   shown above
+
 Full or abbreviated options may be preceded by one - or two -- dashes
+
+Naming Players
+  When picking a set, the name of a player may be the shortest unique
+  abbreviation. When a previously used name could be considered an
+  abbreviation, the previously used name is overwritten.
+  I.E. :  Mew, and MewTwo are not valid players because Mew is an abbreviation
+  for MewTwo. Regardless of which is used first, Mew will become MewTwo.
+  MewTwo and Two are valid players. Their roots/abbreviations don't conflict.
 
 AUTHOR
     Written by James Koval
@@ -166,22 +173,22 @@ menu;#show menu and handle input
 sub menu{
 	print "(q)uit (p)ick (a)dd1card (s)cores (n)umbersToggle: ";
 	my $tmp = <>; chomp $tmp;
-	exit 0 if $tmp =~ /q/i;#quit, case (i)nsensitive
+	exit 0 if $tmp =~ /^q/i;#quit, case (i)nsensitive
 	if ($tmp =~ /p/i){#pick
-		print "Names may be the smallest unique abbreviation...\n";
-		print "Enter player: " ;
-		chomp (my $name = <>);
 		print "Enter first card: ";
 		chomp (my $card1 = <>);
 		print "Enter second card: ";
 		chomp (my $card2 = <>);
 		print "Enter third card: ";
 		chomp (my $card3 = <>);
+		print "Names may be the shortest unique abbreviation...\n";
+		print "Enter player: " ;
+		chomp (my $name = <>);
 		pick($name, $card1, $card2, $card3);
 	}
-	draw if $tmp =~ /a/i;
-	printscores if $tmp =~ /s/i;
-	$numbers = not $numbers if $tmp =~ /n/i;
+	draw if $tmp =~ /^a/i;
+	printscores if $tmp =~ /^s/i;
+	$numbers = not $numbers if $tmp =~ /^n/i;
 
 }
 
@@ -209,7 +216,7 @@ sub pick{
 		}
 	}
 	$scores{$name}++ unless $match;
-	printscores;
+	printscores if $debug;
 }
 
 sub init{
