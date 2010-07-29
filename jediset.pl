@@ -31,11 +31,11 @@ my $rows = $defaultrows;#Number of rows across the screen
 my $defaultcards = 12;
 my $cards = $defaultcards;#Number of cards in a new draw
 my $debug=0;#show debug info
-my $defaultnumbers = 1;
-my $numbers;#bool to toggle on/off the numbers on cards
+my $numbers=1;#bool to toggle on/off the numbers on cards
 my $version; my $help;
+my $match=1;
 
-GetOptions('debug+' => \$debug, 'numbers' => \$numbers,
+GetOptions('debug+' => \$debug,'match!' => \$match,
 'cards=i' => \$cards, 'rows=i' => \$rows,
 'version' => \$version, 'help' => \$help);
 
@@ -52,39 +52,37 @@ DESCRIPTION
     See <http://en.wikipedia.org/wiki/Set_(game)>
    
 OPTIONS
---help    -h : This help message
+--help     -h   : This help message
 
---rows    -r : Specify the number of rows that will fit on your screen
-                   Vertical rows (aka: columns)
-                 Range = 1 through 20  else it defaults
-                 Default = $defaultrows
---cards   -c : Specify the number of cards to play with each round
-                 Range = 1 through 81  else it defaults
-                 Default = $defaultcards
---numbers -n : Toggle numbers on the centers of cards off
+--rows     -r   : Specify the number of rows that will fit on your screen
+                      Vertical rows (aka: columns)
+                    Range = 1 through 20  else it defaults
+                    Default = $defaultrows
+--cards    -c   : Specify the number of cards to play with each round
+                    Range = 1 through 81  else it defaults
+                    Default = $defaultcards
+--version  -v   : Print version on standard output and exit
 
---version -v : Print version on standard output and exit
+--debug    -d   : Enable (likely useless) debuging output data 
+                    Use this option multiple times for more verbosity
+                    The data will be of the form: int   int  int   int
+                                                  shape fill color number
+                    shape, fill, and color are indexes:   values 0 through 2
+                    number is saved directly:             values 1 through 3
+                      Note: Look at the code to see the meanings of indexes
+--match    -m   : Activate player name matching. Default = Active
+--no-match -nom :  Deactivate matching
 
---debug   -d : Enable (likely useless) debuging output data 
-                 Use this option multiple times for more verbosity
-                 The data will be of the form: int   int  int   int
-                                               shape fill color number
-                 shape, fill, and color are indexes:   values 0 through 2
-                 number is saved directly:             values 1 through 3
-                   Note: Look at the code to see the meanings of indexes
-
-Option names may be the shortest unique abbreviation of the full names
-  shown above
-
-Full or abbreviated options may be preceded by one - or two -- dashes
-
-Naming Players
+Naming Players With Matching
   When picking a set, the name of a player may be the shortest unique
-  abbreviation. When a previously used name could be considered an
-  abbreviation, the previously used name is overwritten.
-  I.E. :  Mew, and MewTwo are not valid players because Mew is an abbreviation
-  for MewTwo. Regardless of which is used first, Mew will become MewTwo.
-  MewTwo and Two are valid players. Their roots/abbreviations don't conflict.
+  abbreviation, or longer with the same root. When a previously used name could
+  be considered an abbreviation/root, the previously used name is overwritten.
+    Mew, and MewTwo are not valid players because Mew is an abbreviation/root
+    for MewTwo. Regardless of which is used first, Mew will become MewTwo.
+    MewTwo and Two are valid players. Their roots/abbreviations don't conflict.
+
+Option names may be shorter unique abbreviations of the full names shown above
+Full or abbreviated options may be preceded by one - or two -- dashes
 
 AUTHOR
     Written by James Koval
@@ -102,12 +100,6 @@ exit 0;
 if ($version) {
 	print "$0 1.0 alpha\n";
 	exit 0;
-}
-if($numbers){
-	$numbers = 0;#set to toggle it off
-}
-else{
-	$numbers = $defaultnumbers;
 }
 
 #bounds checks
@@ -175,15 +167,22 @@ sub menu{
 	my $tmp = <>; chomp $tmp;
 	exit 0 if $tmp =~ /^q/i;#quit, case (i)nsensitive
 	if ($tmp =~ /p/i){#pick
-		print "Enter first card: ";
-		chomp (my $card1 = <>);
-		print "Enter second card: ";
-		chomp (my $card2 = <>);
-		print "Enter third card: ";
-		chomp (my $card3 = <>);
-		print "Names may be the shortest unique abbreviation...\n";
-		print "Enter player: " ;
-		chomp (my $name = <>);
+		my $card1;my $card2;my $card3;my $name;
+		do{
+		print "Enter 1st card: ";
+		chomp ($card1 = <>);
+		}while($card1>$#sp);
+		do{
+		print "Enter 2nd card: ";
+		chomp ($card2 = <>);
+		}while($card2>$#sp);
+		do{
+		print "Enter 3rd card: ";
+		chomp ($card3 = <>);
+		}while($card3>$#sp);
+		print "Names may be the shortest unique abbreviation, or longer with the same root...\n" unless scalar keys %scores;
+		print "Enter player  : ";
+		chomp ($name = <>);
 		pick($name, $card1, $card2, $card3);
 	}
 	draw if $tmp =~ /^a/i;
@@ -198,25 +197,30 @@ sub pick{
 	#next 3 args are indexes to the cards
 	#go ahead and move them to the graveyard and get new ones
 	discard sort {$b <=> $a} @_[0..2];
+	print 'After Discard Before Draw ' if $debug>2;
+	debugplay if $debug>2;
 	draw; draw; draw;
-	debugplay if $debug>1;
 
-	my $match = 0;
-	for(keys %scores){
-		if($name =~ /^$_/i){#name contains key
-			$scores{$name} = delete $scores{$_};
-			$scores{$name}++;
-			$match = 1;
-			last;
-		}
-		if(/^$name/i){#key contains name
-			$scores{$_}++;
-			$match = 1;
-			last;
+	my $found = 0;
+  if($match){
+		for(keys %scores){
+			if($name =~ /^$_/i){#name contains key
+				$scores{$name} = delete $scores{$_};
+				$scores{$name}++;
+				print "Matched and replaced $_\n" if $debug>1;
+				$found = 1;
+				last;
+			}
+			if(/^$name/i){#key contains name
+				$scores{$_}++;
+				print "Matched $_\n" if $debug>1;
+				$found = 1;
+				last;
+			}
 		}
 	}
-	$scores{$name}++ unless $match;
-	printscores if $debug;
+	$scores{$name}++ unless $found;
+	printscores if $debug>1;
 }
 
 sub init{
@@ -233,7 +237,8 @@ sub init{
 		push @c, $c;
 		push @n, $number[$n];#save actual number rather than index
 	}}}}
-	debugdeck if $debug>1;
+	print 'Unshuffled ' if $debug>2;
+	debugdeck if $debug>2;
 
 	#shuffle deck
 	#idea from http://stackoverflow.com/users/13/chris-jester-young
@@ -243,12 +248,13 @@ sub init{
 	@c = @c[@order];
 	@n = @n[@order];
 
-	debugdeck if $debug>1;
+	print 'Shuffled ' if $debug>2;
+	debugdeck if $debug>2;
 	
 	#draw cards to be in play
 	draw for(1..$cards);
 
-	debugplay if $debug>1;
+	debugplay if $debug>2;
 }
 
 sub discard{
@@ -278,12 +284,12 @@ sub printscores{
 }
 
 sub debugdeck{
-		print "Shuffled Deck:\n";
+		print "Deck:\n";
 		print $_." "x(3- length $_) ." $s[$_] $f[$_] $c[$_] $n[$_]\n" for(0..$#s);
 }
 
 sub debugplay{
-	print "Cards In Play:\n";
+	print "Play:\n";
 	print $_." "x (3- length $_) ." $sp[$_] $fp[$_] $cp[$_] $np[$_]\n" for(0..$#sp);
 }
 
@@ -303,7 +309,7 @@ sub printcards{
 				$line x= $np[$_];#put the right number of shapes on a line
 
 				#show card's variable values beside card
-				print "$sp[$_] $fp[$_] $cp[$_] $np[$_]" if $debug>1;
+				print "$sp[$_] $fp[$_] $cp[$_] $np[$_]" if $debug>2;
 				
 				my $color1 = "";my $color2 = "";#require larger scope for space calculation
 				#display numbers on cards
@@ -342,7 +348,7 @@ sub printcards{
 			push @np, shift @np;
 		}
 	}
-	debugplay if $debug>1;
+	debugplay if $debug>2;
 }
 
 #Put a shape in @form, randomly or by index into @shape from argument
