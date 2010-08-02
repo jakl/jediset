@@ -1,8 +1,12 @@
-This program requires perl and the following standard perl libraries which
-you probably won't have to install manually because they come with perl:
+This program requires perl and the following perl libraries which
+should come with perl:
   Getopt::Long, Term::ANSIColor, List::Util
 
-Run these commands to install jediset
+Assuming you have perl but not the above libraries run:
+	cpan Getopt::Long
+	cpan Term::ANSIColor
+	cpan List::Util
 
-cd /usr/local/bin
-sudo ln -s /path/to/jediset.pl jediset
+Run these commands to install jediset:
+	cd /usr/local/bin
+	sudo ln -s /path/to/jediset.pl jediset

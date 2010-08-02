@@ -1,33 +1,33 @@
 NAME
-    The Game of Jedi Set: a pattern matching terminal card game
+  The Game of Jedi Set: a pattern matching terminal card game
 
 USAGE
-    ./jediset.pl [--help|--version|--debug|--rows=<int>|--match|
-                       --cards=<int>]
+  jediset.pl [ --help|--version|--debug|--rows=<int>|--match|
+                         --cards=<int> ]
 
 DESCRIPTION
-    See <http://en.wikipedia.org/wiki/Set_(game)>
-   
-OPTIONS
---help     -h   : This help message
+  See <http://en.wikipedia.org/wiki/Set_(game)>
 
---rows     -r   : Specify the number of rows that will fit on your screen
-                      Vertical rows (aka: columns)
-                    Range = 1 through 20  else it defaults
+OPTIONS
+  --help     -h   : This help message
+
+  --rows     -r   : Specify the number of rows that will fit on your screen
+                    Vertical rows (aka: columns)
+                    Range = >0  else it defaults
                     Default = 4
---cards    -c   : Specify the number of cards to play with each round
+  --cards    -c   : Specify the number of cards to play with each round
                     Range = 1 through 81  else it defaults
                     Default = 12
---version  -v   : Print version on standard output and exit
+  --version  -v   : Print version on standard output and exit
 
---debug    -d   : Enable (likely useless) debuging output data 
+  --debug    -d   : Enable (likely useless) debuging output data 
                     Use this option multiple times for more verbosity
                     The data will be of the form: int   int  int   int
                                                   shape fill color number
                     shape, fill, and color are indexes:   values 0 through 2
                     number is saved directly:             values 1 through 3
-                      Note: Look at the code to see the meanings of indexes
---no-match -nom :  Deactivate player name matching
+                    Note: Look at the code to see the meanings of indexes
+  --no-match -nom : Deactivate player name matching
 
 Naming Players With Matching
   When picking a set, the name of a player may be the shortest unique
@@ -37,16 +37,16 @@ Naming Players With Matching
     for MewTwo. Regardless of which is used first, Mew will become MewTwo.
     MewTwo and Two are valid players. Their roots/abbreviations don't conflict.
 
-Option names may be shorter unique abbreviations of the full names shown above
-Full or abbreviated options may be preceded by one - or two -- dashes
+  Option names may be shorter unique abbreviations of the full names shown above
+  Full or abbreviated options may be preceded by one - or two -- dashes
 
 AUTHOR
-    Written by James Koval
+  Written by James Koval
 REPORTING BUGS
-    Report bugs to <jediknight304 () gmail . com>
+  Report bugs to <jediknight304 () gmail . com>
 COPYRIGHT
-    Copyright 2010 James Koval
-    License GPLv3+: GNU GPL version 3 or later
-    <http://gnu.org/licenses/gpl.html>
-    This is free software; you are free to change and redistribute it
-    There is NO WARRANTY, to the extent permitted by law
+  Copyright 2010 James Koval
+  License GPLv3+: GNU GPL version 3 or later
+  <http://gnu.org/licenses/gpl.html>
+  This is free software; you are free to change and redistribute it
+  There is NO WARRANTY, to the extent permitted by law

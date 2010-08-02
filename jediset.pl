@@ -1,7 +1,7 @@
 #!/usr/bin/perl
 =pod
 Copyright 2010 James Koval
- 
+
 This file is part of Jedi Set
 
 Jedi Set is free software: you can redistribute it
@@ -22,55 +22,54 @@ use strict; use warnings;
 use Getopt::Long;
 use Term::ANSIColor;
 use List::Util qw(shuffle max);
-use subs qw(init shade colorize mold);
+use subs qw(init shade colorize mold allequal allunequal);
 use subs qw(debugplay debugdeck);
-use subs qw(printcards printscores menu pick draw discard);
+use subs qw(printcards printscores menu pick set draw discard);
 
 my $defaultrows = 4;#defaults used for help screen
 my $rows = $defaultrows;#Number of rows across the screen
 my $defaultcards = 12;
 my $cards = $defaultcards;#Default number of cards in a board
 my $debug=0;#show debug info
-my $numbers=1;#bool to toggle on/off the numbers on cards
 my $version; my $help;
 my $match=1;
 
 GetOptions('debug+' => \$debug,'match!' => \$match,
-'cards=i' => \$cards, 'rows=i' => \$rows,
-'version' => \$version, 'help' => \$help);
+	'cards=i' => \$cards, 'rows=i' => \$rows,
+	'version' => \$version, 'help' => \$help);
 
 if($help){
-print <<EOF;
+	print <<EOF;
 NAME
-    The Game of Jedi Set: a pattern matching terminal card game
+  The Game of Jedi Set: a pattern matching terminal card game
 
 USAGE
-    $0 [--help|--version|--debug|--rows=<int>|--match|
-                       --cards=<int>]
+  $0 [ --help|--version|--debug|--rows=<int>|--match|
+                         --cards=<int> ]
 
 DESCRIPTION
-    See <http://en.wikipedia.org/wiki/Set_(game)>
-   
-OPTIONS
---help     -h   : This help message
+  See <http://en.wikipedia.org/wiki/Set_(game)>
 
---rows     -r   : Specify the number of rows that will fit on your screen
-                      Vertical rows (aka: columns)
-                    Range = 1 through 20  else it defaults
+OPTIONS
+  --help     -h   : This help message
+
+  --rows     -r   : Specify the number of rows that will fit on your screen
+                    Vertical rows (aka: columns)
+                    Range = >0  else it defaults
                     Default = $defaultrows
---cards    -c   : Specify the number of cards to play with each round
+  --cards    -c   : Specify the number of cards to play with each round
                     Range = 1 through 81  else it defaults
                     Default = $defaultcards
---version  -v   : Print version on standard output and exit
+  --version  -v   : Print version on standard output and exit
 
---debug    -d   : Enable (likely useless) debuging output data 
+  --debug    -d   : Enable (likely useless) debuging output data 
                     Use this option multiple times for more verbosity
                     The data will be of the form: int   int  int   int
                                                   shape fill color number
                     shape, fill, and color are indexes:   values 0 through 2
                     number is saved directly:             values 1 through 3
-                      Note: Look at the code to see the meanings of indexes
---no-match -nom :  Deactivate player name matching
+                    Note: Look at the code to see the meanings of indexes
+  --no-match -nom : Deactivate player name matching
 
 Naming Players With Matching
   When picking a set, the name of a player may be the shortest unique
@@ -80,21 +79,21 @@ Naming Players With Matching
     for MewTwo. Regardless of which is used first, Mew will become MewTwo.
     MewTwo and Two are valid players. Their roots/abbreviations don't conflict.
 
-Option names may be shorter unique abbreviations of the full names shown above
-Full or abbreviated options may be preceded by one - or two -- dashes
+  Option names may be shorter unique abbreviations of the full names shown above
+  Full or abbreviated options may be preceded by one - or two -- dashes
 
 AUTHOR
-    Written by James Koval
+  Written by James Koval
 REPORTING BUGS
-    Report bugs to <jediknight304 () gmail . com>
+  Report bugs to <jediknight304 () gmail . com>
 COPYRIGHT
-    Copyright 2010 James Koval
-    License GPLv3+: GNU GPL version 3 or later
-    <http://gnu.org/licenses/gpl.html>
-    This is free software; you are free to change and redistribute it
-    There is NO WARRANTY, to the extent permitted by law
+  Copyright 2010 James Koval
+  License GPLv3+: GNU GPL version 3 or later
+  <http://gnu.org/licenses/gpl.html>
+  This is free software; you are free to change and redistribute it
+  There is NO WARRANTY, to the extent permitted by law
 EOF
-exit 0;
+	exit 0;
 }
 if ($version) {
 	print "$0 1.0 alpha\n";
@@ -103,7 +102,7 @@ if ($version) {
 
 #bounds checks
 $cards = $defaultcards if($cards <1 or $cards > 81);
-$rows = $defaultrows if($rows <1 or $rows > 21);
+$rows = $defaultrows if $rows <1;
 
 
 #constant list of values for cards 
@@ -115,23 +114,23 @@ my @number= qw(1        2      3      );
 
 #keep these an odd number across
 my @rect = qw(
- _____
+_____
 |@@@@@|
 |@@@@@|
 |@@@@@|
 -------);
 my @tria = qw(
-   _
-  /@\\  
- /@@@\\ 
+_
+/@\\  
+/@@@\\ 
 /@@@@@\\
 -------);
 my @oval = qw(
-  ___  
- /@@@\\ 
-\(@@@@@\)
- \\@@@/ 
-  ---  );
+___  
+/@@@\\ 
+{@@@@@}
+\\@@@/ 
+---);
 my @form;#shape used for the next card printed
 
 my $cardwidth=0;
@@ -157,50 +156,61 @@ my %scores;
 #game loop
 init;#gen deck
 while(1){
-printcards;#show playing field
-menu;#show menu and handle input
+	printcards;#show playing field
+	menu;#show menu and handle input
 }
 
 sub menu{
-	print "(q)uit (p)ick (a)dd1card (s)cores (n)umbersToggle: ";
+	print "(q)uit (p)ick (a)dd1card (s)cores (r)ows: ";
 	my $tmp = <>; chomp $tmp;
 	exit 0 if $tmp =~ /^q/i;#quit, case (i)nsensitive
-	if ($tmp =~ /p/i){#pick
+	if ($tmp =~ /^p/i){#pick
 		my $card1;my $card2;my $card3;my $name;
 		do{
-		print "Enter 1st card: ";
-		chomp ($card1 = <>);
-		}while($card1>$#sp);
+			print "Enter 1st card: ";
+			chomp ($card1 = <>);
+		}while($card1=~/\D/ or $card1>$#sp);
 		do{
-		print "Enter 2nd card: ";
-		chomp ($card2 = <>);
-		}while($card2>$#sp);
+			print "Enter 2nd card: ";
+			chomp ($card2 = <>);
+		}while($card2=~/\D/ or $card2>$#sp or $card2 == $card1);
 		do{
-		print "Enter 3rd card: ";
-		chomp ($card3 = <>);
-		}while($card3>$#sp);
+			print "Enter 3rd card: ";
+			chomp ($card3 = <>);
+		}while($card3=~/\D/ or $card3>$#sp or $card3 == $card2 or $card3 == $card1);
+		unless (set $card1, $card2, $card3){
+			print "Not a set\n";
+			return;
+		}
 		print "Names may be the shortest unique abbreviation, or longer with the same root...\n" unless scalar keys %scores;
 		print "Enter player  : ";
 		chomp ($name = <>);
 		pick($name, $card1, $card2, $card3);
 	}
-	draw if $tmp =~ /^a/i;
-	printscores if $tmp =~ /^s/i;
-	$numbers = not $numbers if $tmp =~ /^n/i;
+	if ($tmp =~ /^r/i){#rows
+		my $userrows;
+		do{
+			print "Enter rows: ";
+			chomp ($userrows = <>);
+		}while($userrows =~/\D/ or $userrows < 1);
+		$rows = $userrows;
+	}
+	draw if $tmp =~ /^a/i;#add1card
+	printscores if $tmp =~ /^s/i;#scores
 }
 
 sub pick{
 	my $name = shift;
 
-	#next 3 args are indexes to the cards
-	#go ahead and move them to the graveyard and get new ones
+#next 3 args are indexes to the cards
+#go ahead and move them to the graveyard and get new ones
 	discard sort {$b <=> $a} @_[0..2];
 	print 'After Discard Before Draw ' if $debug>2;
 	debugplay if $debug>2;
 	draw for (1..$cards-@sp);#only draw cards up to $cards, the default amount on the board
 
 	my $found = 0;
-  if($match){
+	if($match){
 		for(keys %scores){
 			if($name =~ /^$_/i){#name contains key
 				$scores{$name} = delete $scores{$_};
@@ -221,25 +231,43 @@ sub pick{
 	printscores if $debug>1;
 }
 
+#takes indexes into in-play arrays: @sp, @fp, $cp, @np ; and checks for valid set
+sub set{
+	return 0 unless allequal @sp[@_] or allunequal @sp[@_];
+	return 0 unless allequal @fp[@_] or allunequal @fp[@_];
+	return 0 unless allequal @cp[@_] or allunequal @cp[@_];
+	return 0 unless allequal @np[@_] or allunequal @np[@_];
+	return 1;
+}
+
+#turns each argument into a hash key and returns whether or not every arg was the same key
+sub allequal{
+	return keys %{{ map {$_, 1} @_ }} == 1;
+}
+#turns each argument into a hash key and returns whether or not every argument is a unique key
+sub allunequal{
+	return keys %{{ map {$_, 1} @_ }} == @_;
+}
+
 sub init{
-	#init @form for for-loops that use a standard shape's array length
+#init @form for for-loops that use a standard shape's array length
 	@form = @rect;
-	#reset arrays
+#reset arrays
 	undef @s;undef @f;undef @c;undef @n;
 	undef @sp;undef @fp;undef @cp;undef @np;
 
-	#populate deck with non-repeating cards
+#populate deck with non-repeating cards
 	for $s(0..$#shape){for $f(0..$#fill){for $c(0..$#color){for $n(0..$#number){
-		push @s, $s;
-		push @f, $f;
-		push @c, $c;
-		push @n, $number[$n];#save actual number rather than index
-	}}}}
+					push @s, $s;
+					push @f, $f;
+					push @c, $c;
+					push @n, $number[$n];#save actual number rather than index
+				}}}}
 	print 'Unshuffled ' if $debug>2;
 	debugdeck if $debug>2;
 
-	#shuffle deck
-	#idea from http://stackoverflow.com/users/13/chris-jester-young
+#shuffle deck
+#idea from http://stackoverflow.com/users/13/chris-jester-young
 	my @order = shuffle 0..$#c;
 	@s = @s[@order];
 	@f = @f[@order];
@@ -248,8 +276,8 @@ sub init{
 
 	print 'Shuffled ' if $debug>2;
 	debugdeck if $debug>2;
-	
-	#draw cards to be in play
+
+#draw cards to be in play
 	draw for(1..$cards);
 
 	debugplay if $debug>2;
@@ -283,8 +311,8 @@ sub printscores{
 }
 
 sub debugdeck{
-		print "Deck:\n";
-		print $_." "x(3- length $_) ." $s[$_] $f[$_] $c[$_] $n[$_]\n" for(0..$#s);
+	print "Deck:\n";
+	print $_." "x(3- length $_) ." $s[$_] $f[$_] $c[$_] $n[$_]\n" for(0..$#s);
 }
 
 sub debugplay{
@@ -297,7 +325,7 @@ sub printcards{
 	my $cardstoprint = @sp;
 	while($cardstoprint){
 		$row=$cardstoprint if($cardstoprint < $row);
-		
+
 		for my $i (0..$#form){#cycle each line in ascii shape
 			for(0..$row-1){#cycle rows
 				mold $sp[$_];#make @form a specific shape
@@ -307,39 +335,37 @@ sub printcards{
 				my $line = $spaces.$form[$i].$spaces;#center and space the shapes out
 				$line x= $np[$_];#put the right number of shapes on a line
 
-				#show card's variable values beside card
+#show card's variable values beside card
 				print "$sp[$_] $fp[$_] $cp[$_] $np[$_]" if $debug>2;
-				
-				my $color1 = "";my $color2 = "";#require larger scope for space calculation
-				#display numbers on cards
-				if($i==$#form/2 and $numbers){
-				#grab the first half of the middle line in a card
-				#  and combine it with the card's number plus
-				#  the second half missing whatever is necessary
-				#  to fit the number. i.e. missing 1 character for <10
-				#  2 characters for >=10 <100 because 10 is 2 characters
+
+#display numbers on cards
+#grab the first half of the middle line in a card
+#  and combine it with the card's number plus
+#  the second half missing whatever is necessary
+#  to fit the number. i.e. missing 1 character for <10
+#  2 characters for >=10 <100 because 10 is 2 characters
+				my $color1='';my $color2='';
+				if($i == $#form/2){
 					my $cardnumber = @cp-$cardstoprint;
 					my $half1 = substr($line,0,length($line)/2);
 					my $half2 = substr($line,length($line)/2+length ($cardnumber));
 					$color1 = color $color[ $cp[$_]+1 > $#color ? 0 : $cp[$_]+1];
 					$color2 = color $color[$cp[$_]];
 					$line = $half1.$color1.$cardnumber.$color2.$half2;
+#each new card that is printed, decrements cards needed to print
 					$cardstoprint--;
 				}
-				
-				#each new card that is printed, decrements cards needed to print
-				$cardstoprint-- if($i==0 and !$numbers);
 
-				#print card with enough spacing to fit the maximum number of shapes
-				#and center card in place
+#print card with enough spacing to fit the maximum number of shapes
+#and center card in place
 				$spaces = $cardwidth*max(@number)-length($line)+length($color1)+length($color2);
 				print " "x($spaces/2).$line." "x($spaces/2+($spaces%2 ? 1:0))." ";
 			}
-		print color 'clear';
-		print "\n";
+			print color 'clear';
+			print "\n";
 		}
 
-		#put cards on the other end of the array after being printed
+#put cards on the other end of the array after being printed
 		for(1..$row){
 			push @sp, shift @sp;
 			push @fp, shift @fp;
@@ -370,7 +396,7 @@ sub shade{
 sub colorize{
 	my $c = shift; $c = int rand @color unless defined $c;
 	print color "bold $color[$c]";
-	#$form[3][4] = $c[0];
+#$form[3][4] = $c[0];
 	return $c;
 }
 
