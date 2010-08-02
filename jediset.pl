@@ -240,14 +240,11 @@ sub set{
 	return 1;
 }
 
-#turns each argument into a hash key and returns whether or not every arg was the same key
-sub allequal{
-	return keys %{{ map {$_, 1} @_ }} == 1;
-}
-#turns each argument into a hash key and returns whether or not every argument is a unique key
-sub allunequal{
-	return keys %{{ map {$_, 1} @_ }} == @_;
-}
+#turns each argument into a hash key
+#returns whether every arg was the same key
+sub allequal{	return keys %{{ map {$_, 1} @_ }} == 1; }
+#returns whether every argument is a unique key
+sub allunequal{	return keys %{{ map {$_, 1} @_ }} == @_; }
 
 sub init{
 #init @form for for-loops that use a standard shape's array length

@@ -2,7 +2,7 @@ This program requires perl and the following perl libraries which
 should come with perl:
   Getopt::Long, Term::ANSIColor, List::Util
 
-Assuming you have perl but not the above libraries run:
+Assuming you have perl but not the above libraries, run:
 	cpan Getopt::Long
 	cpan Term::ANSIColor
 	cpan List::Util
