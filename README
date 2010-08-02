@@ -1,13 +1,8 @@
-RUNNING
-  This program requires perl and the following standard perl libraries which
-  you probably won't have to install manually because they come with perl:
-    Getopt::Long, Term::ANSIColor, List::Util
-
 NAME
     The Game of Jedi Set: a pattern matching terminal card game
 
 USAGE
-    jediset.pl [--help|--version|--debug|--rows=<int>|--numbers|
+    ./jediset.pl [--help|--version|--debug|--rows=<int>|--match|
                        --cards=<int>]
 
 DESCRIPTION
@@ -32,8 +27,7 @@ OPTIONS
                     shape, fill, and color are indexes:   values 0 through 2
                     number is saved directly:             values 1 through 3
                       Note: Look at the code to see the meanings of indexes
---match    -m   : Activate player name matching. Default = Active
---no-match -nom :  Deactivate matching
+--no-match -nom :  Deactivate player name matching
 
 Naming Players With Matching
   When picking a set, the name of a player may be the shortest unique

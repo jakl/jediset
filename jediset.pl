@@ -29,7 +29,7 @@ use subs qw(printcards printscores menu pick draw discard);
 my $defaultrows = 4;#defaults used for help screen
 my $rows = $defaultrows;#Number of rows across the screen
 my $defaultcards = 12;
-my $cards = $defaultcards;#Number of cards in a new draw
+my $cards = $defaultcards;#Default number of cards in a board
 my $debug=0;#show debug info
 my $numbers=1;#bool to toggle on/off the numbers on cards
 my $version; my $help;
@@ -45,7 +45,7 @@ NAME
     The Game of Jedi Set: a pattern matching terminal card game
 
 USAGE
-    $0 [--help|--version|--debug|--rows=<int>|--numbers|
+    $0 [--help|--version|--debug|--rows=<int>|--match|
                        --cards=<int>]
 
 DESCRIPTION
@@ -70,8 +70,7 @@ OPTIONS
                     shape, fill, and color are indexes:   values 0 through 2
                     number is saved directly:             values 1 through 3
                       Note: Look at the code to see the meanings of indexes
---match    -m   : Activate player name matching. Default = Active
---no-match -nom :  Deactivate matching
+--no-match -nom :  Deactivate player name matching
 
 Naming Players With Matching
   When picking a set, the name of a player may be the shortest unique
@@ -188,7 +187,6 @@ sub menu{
 	draw if $tmp =~ /^a/i;
 	printscores if $tmp =~ /^s/i;
 	$numbers = not $numbers if $tmp =~ /^n/i;
-
 }
 
 sub pick{
@@ -199,7 +197,7 @@ sub pick{
 	discard sort {$b <=> $a} @_[0..2];
 	print 'After Discard Before Draw ' if $debug>2;
 	debugplay if $debug>2;
-	draw; draw; draw;
+	draw for (1..$cards-@sp);#only draw cards up to $cards, the default amount on the board
 
 	my $found = 0;
   if($match){
@@ -257,12 +255,13 @@ sub init{
 	debugplay if $debug>2;
 }
 
+#remove cards from board, indexed by arguments, and place in graveyard
 sub discard{
 	for (@_){
-		push @sg, $sp[$_];splice @sp, $_, 1;
-		push @fg, $fp[$_];splice @fp, $_, 1;
-		push @cg, $cp[$_];splice @cp, $_, 1;
-		push @ng, $np[$_];splice @np, $_, 1;
+		push @sg, splice @sp, $_, 1;
+		push @fg, splice @fp, $_, 1;
+		push @cg, splice @cp, $_, 1;
+		push @ng, splice @np, $_, 1;
 	}
 }
 
