@@ -11,3 +11,27 @@ Run these commands to install jediset:
 	cd /usr/local/bin
 	sudo ln -s /path/to/jediset.pl jediset
 	sudo chmod +x jediset
+
+
+So your running Windows instead of Linux?
+
+Install msysGit-netinstall from this site
+http://code.google.com/p/msysgit/downloads/list
+
+It should install to your C drive under a folder called msysgit
+Go into that folder and run msys.bat
+
+The first time you run msys.bat, you have to type:
+git clone git://github.com/jediknight304/jediset.git
+
+For now and all future times, type this before playing or updating:
+cd jediset
+
+To play, type:
+./jediset.pl
+
+To update, type:
+git pull
+
+
+If I were you I'd make a shortcut to msys.bat on your desktop

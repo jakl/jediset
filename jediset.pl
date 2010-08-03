@@ -24,14 +24,14 @@ use Term::ANSIColor;
 use List::Util qw(shuffle max);
 use subs qw(init shade colorize mold allequal allunequal);
 use subs qw(debugplay debugdeck);
-use subs qw(printcards printscores menu pick set draw choose);
+use subs qw(printcards printscores printhelp menu pick set draw choose);
 
-my $defaultrows = 4;#defaults used for help screen
+my $defaultrows = 3;
 my $rows = $defaultrows;#Number of rows across the screen
 my $defaultcards = 12;
-my $cards = $defaultcards;#Default number of cards in a board
-my $debug=0;#show debug info
-my $version; my $help;
+my $cards = $defaultcards;#Number of cards in a board
+my $debug=0;#show debug info, shows more with higher numbers
+my $version; my $help;#boolean to show version or help
 my $match=1;
 
 GetOptions('debug+' => \$debug,'match!' => \$match,
@@ -39,64 +39,11 @@ GetOptions('debug+' => \$debug,'match!' => \$match,
 	'version' => \$version, 'help' => \$help);
 
 if($help){
-	print <<EOF;
-NAME
-	The Game of Jedi Set: a pattern matching terminal card game
-
-USAGE
-	$0 [ --help|--version|--debug|--rows=<int>|--match|
-												 --cards=<int> ]
-
-DESCRIPTION
-	See <http://en.wikipedia.org/wiki/Set_(game)>
-
-OPTIONS
-	--help     -h   : This help message
-
-	--rows     -r   : Specify the number of rows that will fit on your screen
-										Vertical rows (aka: columns)
-										Range = >0  else it defaults
-										Default = $defaultrows
-	--cards    -c   : Specify the number of cards to play with each round
-										Range = 1 through 81  else it defaults
-										Default = $defaultcards
-	--version  -v   : Print version on standard output and exit
-
-	--debug    -d   : Enable (likely useless) debuging output data 
-										Use this option multiple times for more verbosity
-										The data will be of the form: int   int  int   int
-																									shape fill color number
-										shape, fill, and color are indexes:   values 0 through 2
-										number is saved directly:             values 1 through 3
-										Note: Look at the code to see the meanings of indexes
-	--no-match -nom : Deactivate player name matching
-
-Naming Players With Matching
-	When picking a set, the name of a player may be the shortest unique
-	abbreviation, or longer with the same root. When a previously used name could
-	be considered an abbreviation/root, the previously used name is overwritten.
-		Mew, and MewTwo are not valid players because Mew is an abbreviation/root
-		for MewTwo. Regardless of which is used first, Mew will become MewTwo.
-		MewTwo and Two are valid players. Their roots/abbreviations don't conflict.
-
-	Option names may be shorter unique abbreviations of the full names shown above
-	Full or abbreviated options may be preceded by one - or two -- dashes
-
-AUTHOR
-	Written by James Koval
-REPORTING BUGS
-	Report bugs to <jediknight304 () gmail . com>
-COPYRIGHT
-	Copyright 2010 James Koval
-	License GPLv3+: GNU GPL version 3 or later
-	<http://gnu.org/licenses/gpl.html>
-	This is free software; you are free to change and redistribute it
-	There is NO WARRANTY, to the extent permitted by law
-EOF
+	printhelp;
 	exit 0;
 }
 if ($version) {
-	print "$0 1.0 alpha\n";
+	print "$0 1.0\n";
 	exit 0;
 }
 
@@ -161,7 +108,7 @@ while(1){
 }
 
 sub menu{
-	print "(q)uit (p)ick (a)dd1card (s)cores (r)ows: ";
+	print "(q)uit (p)ick (a)dd1card (s)cores (r)ows (h)elp: ";
 	my $tmp = <>; chomp $tmp;
 	exit 0 if $tmp =~ /^q/i;#quit, case (i)nsensitive
 	if ($tmp =~ /^p/i){#pick
@@ -198,6 +145,7 @@ sub menu{
 	}
 	draw if $tmp =~ /^a/i;#add1card
 	printscores if $tmp =~ /^s/i;#scores
+	printhelp if $tmp =~ /^h/i;#help
 }
 
 #args: name,card1,card2,card3
@@ -416,3 +364,60 @@ sub colorize{
 }
 
 #number doesn't need a function, for it is saved directly in the array
+
+sub printhelp{
+	print <<EOF;
+NAME
+  The Game of Jedi Set: a pattern matching terminal card game
+
+USAGE
+  $0 [ --help|--version|--debug|--rows=<int>|--match|
+                         --cards=<int> ]
+
+DESCRIPTION
+  See <http://en.wikipedia.org/wiki/Set_(game)>
+
+OPTIONS
+  --help     -h   : This help message
+
+  --rows     -r   : Specify the number of rows that will fit on your screen
+                    Vertical rows (aka: columns)
+                    Range = >0  else it defaults
+                    Default = $defaultrows
+  --cards    -c   : Specify the number of cards to play with each round
+                    Range = 1 through 81  else it defaults
+                    Default = $defaultcards
+  --version  -v   : Print version on standard output and exit
+
+  --debug    -d   : Enable (likely useless) debuging output data 
+                    Use this option multiple times for more verbosity
+                    The data will be of the form: int   int  int   int
+                                                  shape fill color number
+                    shape, fill, and color are indexes:   values 0 through 2
+                    number is saved directly:             values 1 through 3
+                    Note: Look at the code to see the meanings of indexes
+  --no-match -nom : Deactivate player name matching
+
+Naming Players With Matching
+  When picking a set, the name of a player may be the shortest unique
+  abbreviation, or longer with the same root. When a previously used name could
+  be considered an abbreviation/root, the previously used name is overwritten.
+    Mew, and MewTwo are not valid players because Mew is an abbreviation/root
+    for MewTwo. Regardless of which is used first, Mew will become MewTwo.
+    MewTwo and Two are valid players. Their roots/abbreviations don't conflict.
+
+  Option names may be shorter unique abbreviations of the full names shown above
+  Full or abbreviated options may be preceded by one - or two -- dashes
+
+AUTHOR
+  Written by James Koval
+REPORTING BUGS
+  Report bugs to <jediknight304 () gmail . com>
+COPYRIGHT
+  Copyright 2010 James Koval
+  License GPLv3+: GNU GPL version 3 or later
+  <http://gnu.org/licenses/gpl.html>
+  This is free software; you are free to change and redistribute it
+  There is NO WARRANTY, to the extent permitted by law
+EOF
+}
