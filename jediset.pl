@@ -35,16 +35,16 @@ my $version; my $help;#boolean to show version or help
 my $match=1;
 
 GetOptions('debug+' => \$debug,'match!' => \$match,
-	'cards=i' => \$cards, 'rows=i' => \$rows,
-	'version' => \$version, 'help' => \$help);
+  'cards=i' => \$cards, 'rows=i' => \$rows,
+  'version' => \$version, 'help' => \$help);
 
 if($help){
-	printhelp;
-	exit 0;
+  printhelp;
+  exit 0;
 }
 if ($version) {
-	print "$0 1.0\n";
-	exit 0;
+  print "$0 1.0\n";
+  exit 0;
 }
 
 #bounds checks
@@ -103,90 +103,91 @@ my %scores;
 #game loop
 init;#gen deck
 while(1){
-	printcards;#show playing field
-	menu;#show menu and handle input
+  printcards;#show playing field
+  menu;#show menu and handle input
 }
 
 sub menu{
-	print "(q)uit (p)ick (a)dd1card (s)cores (r)ows (h)elp: ";
-	my $tmp = <>; chomp $tmp;
-	exit 0 if $tmp =~ /^q/i;#quit, case (i)nsensitive
-	if ($tmp =~ /^p/i){#pick
-		my $card1;my $card2;my $card3;my $name;
-		do{
-			print "Enter 1st card: ";
-			chomp ($card1 = <>);
-		}while($card1=~/\D/ or $card1>$#sp);
-		do{
-			print "Enter 2nd card: ";
-			chomp ($card2 = <>);
-		}while($card2=~/\D/ or $card2>$#sp or $card2 == $card1);
-		do{
-			print "Enter 3rd card: ";
-			chomp ($card3 = <>);
-		}while($card3=~/\D/ or $card3>$#sp or $card3 == $card2 or $card3 == $card1);
-		unless (set $card1, $card2, $card3){
-			print "Not a set\n";
-			return;
-		}
-		#only show this message the first time
-		print "Names may be the shortest unique abbreviation, or longer with the same root...\n" unless scalar keys %scores;
-		print "Enter player  : ";
-		chomp ($name = <>);
-		pick($name, $card1, $card2, $card3);
-	}
-	if ($tmp =~ /^r/i){#rows
-		my $userrows;
-		do{
-			print "Enter rows: ";
-			chomp ($userrows = <>);
-		}while($userrows =~/\D/ or $userrows < 1);
-		$rows = $userrows;
-	}
-	draw if $tmp =~ /^a/i;#add1card
-	printscores if $tmp =~ /^s/i;#scores
-	printhelp if $tmp =~ /^h/i;#help
+  print "(q)uit (p)ick (a)dd1card (s)cores (r)ows (h)elp (n)ewgame: ";
+  my $tmp = <>; chomp $tmp;
+  exit 0 if $tmp =~ /^q/i;#quit, case (i)nsensitive
+  init if $tmp =~ /^n/i;
+  if ($tmp =~ /^p/i){#pick
+    my $card1;my $card2;my $card3;my $name;
+    do{
+      print "Enter 1st card: ";
+      chomp ($card1 = <>);
+    }while($card1=~/\D/ or $card1>$#sp);
+    do{
+      print "Enter 2nd card: ";
+      chomp ($card2 = <>);
+    }while($card2=~/\D/ or $card2>$#sp or $card2 == $card1);
+    do{
+      print "Enter 3rd card: ";
+      chomp ($card3 = <>);
+    }while($card3=~/\D/ or $card3>$#sp or $card3 == $card2 or $card3 == $card1);
+    unless (set $card1, $card2, $card3){
+      print "Not a set\n";
+      return;
+    }
+    #only show this message the first time
+    print "Names may be the shortest unique abbreviation, or longer with the same root...\n" unless scalar keys %scores;
+    print "Enter player  : ";
+    chomp ($name = <>);
+    pick($name, $card1, $card2, $card3);
+  }
+  if ($tmp =~ /^r/i){#rows
+    my $userrows;
+    do{
+      print "Enter rows: ";
+      chomp ($userrows = <>);
+    }while($userrows =~/\D/ or $userrows < 1);
+    $rows = $userrows;
+  }
+  draw if $tmp =~ /^a/i;#add1card
+  printscores if $tmp =~ /^s/i;#scores
+  printhelp if $tmp =~ /^h/i;#help
 }
 
 #args: name,card1,card2,card3
 sub pick{
-	my $name = shift;
-	choose @_;
+  my $name = shift;
+  choose @_;
 
-	debugplay if $debug>2;
+  debugplay if $debug>2;
 
-	#discard sort {$b <=> $a} @_[0..2];
-	#print 'After Discard Before Draw ' if $debug>2;
-	#draw for (1..$cards-@sp);#only draw cards up to $cards, the default amount on the board
-	my $found = 0;
-	if($match){
-		for(keys %scores){
-			if($name =~ /^$_/i){#name contains key
-				$scores{$name} = delete $scores{$_};
-				$scores{$name}++;
-				print "Matched and replaced $_\n" if $debug>1;
-				$found = 1;
-				last;
-			}
-			if(/^$name/i){#key contains name
-				$scores{$_}++;
-				print "Matched $_\n" if $debug>1;
-				$found = 1;
-				last;
-			}
-		}
-	}
-	$scores{$name}++ unless $found;
-	printscores if $debug>1;
+  #discard sort {$b <=> $a} @_[0..2];
+  #print 'After Discard Before Draw ' if $debug>2;
+  #draw for (1..$cards-@sp);#only draw cards up to $cards, the default amount on the board
+  my $found = 0;
+  if($match){
+    for(keys %scores){
+      if($name =~ /^$_/i){#name contains key
+        $scores{$name} = delete $scores{$_};
+        $scores{$name}++;
+        print "Matched and replaced $_\n" if $debug>1;
+        $found = 1;
+        last;
+      }
+      if(/^$name/i){#key contains name
+        $scores{$_}++;
+        print "Matched $_\n" if $debug>1;
+        $found = 1;
+        last;
+      }
+    }
+  }
+  $scores{$name}++ unless $found;
+  printscores if $debug>1;
 }
 
 #takes indexes into in-play arrays: @sp, @fp, $cp, @np ; and checks for valid set
 sub set{
-	return 0 unless allequal @sp[@_] or allunequal @sp[@_];
-	return 0 unless allequal @fp[@_] or allunequal @fp[@_];
-	return 0 unless allequal @cp[@_] or allunequal @cp[@_];
-	return 0 unless allequal @np[@_] or allunequal @np[@_];
-	return 1;
+  return 0 unless allequal @sp[@_] or allunequal @sp[@_];
+  return 0 unless allequal @fp[@_] or allunequal @fp[@_];
+  return 0 unless allequal @cp[@_] or allunequal @cp[@_];
+  return 0 unless allequal @np[@_] or allunequal @np[@_];
+  return 1;
 }
 
 #turns each argument into a hash key
@@ -197,36 +198,36 @@ sub allunequal{	return keys %{{ map {$_, 1} @_ }} == @_; }
 
 sub init{
 #init @form for for-loops that use a standard shape's array length
-	@form = @rect;
+  @form = @rect;
 #reset arrays
-	undef @s;undef @f;undef @c;undef @n;
-	undef @sp;undef @fp;undef @cp;undef @np;
+  undef @s;undef @f;undef @c;undef @n;
+  undef @sp;undef @fp;undef @cp;undef @np;
 
 #populate deck with non-repeating cards
-	for $s(0..$#shape){for $f(0..$#fill){for $c(0..$#color){for $n(0..$#number){
-					push @s, $s;
-					push @f, $f;
-					push @c, $c;
-					push @n, $number[$n];#save actual number rather than index
-				}}}}
-	print 'Unshuffled ' if $debug>2;
-	debugdeck if $debug>2;
+  for $s(0..$#shape){for $f(0..$#fill){for $c(0..$#color){for $n(0..$#number){
+          push @s, $s;
+          push @f, $f;
+          push @c, $c;
+          push @n, $number[$n];#save actual number rather than index
+        }}}}
+  print 'Unshuffled ' if $debug>2;
+  debugdeck if $debug>2;
 
 #shuffle deck
 #idea from http://stackoverflow.com/users/13/chris-jester-young
-	my @order = shuffle 0..$#c;
-	@s = @s[@order];
-	@f = @f[@order];
-	@c = @c[@order];
-	@n = @n[@order];
+  my @order = shuffle 0..$#c;
+  @s = @s[@order];
+  @f = @f[@order];
+  @c = @c[@order];
+  @n = @n[@order];
 
-	print 'Shuffled ' if $debug>2;
-	debugdeck if $debug>2;
+  print 'Shuffled ' if $debug>2;
+  debugdeck if $debug>2;
 
 #draw cards to be in play
-	draw for(1..$cards);
+  draw for(1..$cards);
 
-	debugplay if $debug>2;
+  debugplay if $debug>2;
 }
 
 #args are indexes into in-play arrays
@@ -234,72 +235,72 @@ sub init{
 #overwritten with a newly drawn card if total cards are below the $cards limit
 #or just deleted if there exists add1card cards on the board
 sub choose{
-	@_ = sort {$b <=> $a} @_;
-	for (@_){
-		push @sg, $sp[$_];
-		push @fg, $fp[$_];
-		push @cg, $cp[$_];
-		push @ng, $np[$_];
+  @_ = sort {$b <=> $a} @_;
+  for (@_){
+    push @sg, $sp[$_];
+    push @fg, $fp[$_];
+    push @cg, $cp[$_];
+    push @ng, $np[$_];
 
-		return 0 if not scalar @s;#can't draw if deck is empty
+    return 0 if not scalar @s;#can't draw if deck is empty
 
-		if(@sp>$cards){
-			splice @sp, $_, 1;
-			splice @fp, $_, 1;
-			splice @cp, $_, 1;
-			splice @np, $_, 1;
-		}
-		else{
-			$sp[$_] = pop @s;
-			$fp[$_] = pop @f;
-			$cp[$_] = pop @c;
-			$np[$_] = pop @n;
-		}
-	}
+    if(@sp>$cards){
+      splice @sp, $_, 1;
+      splice @fp, $_, 1;
+      splice @cp, $_, 1;
+      splice @np, $_, 1;
+    }
+    else{
+      $sp[$_] = pop @s;
+      $fp[$_] = pop @f;
+      $cp[$_] = pop @c;
+      $np[$_] = pop @n;
+    }
+  }
 }
 
 #take a card from end of deck, and put onto end of cards in play
 #return false if deck is empty
 sub draw{
-	return 0 if not scalar @s;#can't draw if deck is empty
-	push @sp, pop @s;
-	push @fp, pop @f;
-	push @cp, pop @c;
-	push @np, pop @n;
+  return 0 if not scalar @s;#can't draw if deck is empty
+  push @sp, pop @s;
+  push @fp, pop @f;
+  push @cp, pop @c;
+  push @np, pop @n;
 }
 
 sub printscores{
-	print $_.": ".$scores{$_}."   " for(keys %scores);
-	print "\n";
+  print $_.": ".$scores{$_}."   " for(keys %scores);
+  print "\n";
 }
 
 sub debugdeck{
-	print "Deck:\n";
-	print $_." "x(3- length $_) ." $s[$_] $f[$_] $c[$_] $n[$_]\n" for(0..$#s);
+  print "Deck:\n";
+  print $_." "x(3- length $_) ." $s[$_] $f[$_] $c[$_] $n[$_]\n" for(0..$#s);
 }
 
 sub debugplay{
-	print "Play:\n";
-	print $_." "x (3- length $_) ." $sp[$_] $fp[$_] $cp[$_] $np[$_]\n" for(0..$#sp);
+  print "Play:\n";
+  print $_." "x (3- length $_) ." $sp[$_] $fp[$_] $cp[$_] $np[$_]\n" for(0..$#sp);
 }
 
 sub printcards{
-	my $row=$rows;#fluxuates when fewer cards need to be printed
-	my $cardstoprint = @sp;
-	while($cardstoprint){
-		$row=$cardstoprint if($cardstoprint < $row);
+  my $row=$rows;#fluxuates when fewer cards need to be printed
+  my $cardstoprint = @sp;
+  while($cardstoprint){
+    $row=$cardstoprint if($cardstoprint < $row);
 
-		for my $i (0..$#form){#cycle each line in ascii shape
-			for(0..$row-1){#cycle rows
-				mold $sp[$_];#make @form a specific shape
-				shade $fp[$_];#make @form a specific fill
-				colorize $cp[$_];#ready output for a color
-				my $spaces = " "x(($cardwidth-length $form[$i])/2);
-				my $line = $spaces.$form[$i].$spaces;#center and space the shapes out
-				$line x= $np[$_];#put the right number of shapes on a line
+    for my $i (0..$#form){#cycle each line in ascii shape
+      for(0..$row-1){#cycle rows
+        mold $sp[$_];#make @form a specific shape
+        shade $fp[$_];#make @form a specific fill
+        colorize $cp[$_];#ready output for a color
+        my $spaces = " "x(($cardwidth-length $form[$i])/2);
+        my $line = $spaces.$form[$i].$spaces;#center and space the shapes out
+        $line x= $np[$_];#put the right number of shapes on a line
 
 #show card's variable values beside card
-				print "$sp[$_] $fp[$_] $cp[$_] $np[$_]" if $debug>2;
+        print "$sp[$_] $fp[$_] $cp[$_] $np[$_]" if $debug>2;
 
 #display numbers on cards
 #grab the first half of the middle line in a card
@@ -307,66 +308,66 @@ sub printcards{
 #  the second half missing whatever is necessary
 #  to fit the number. i.e. missing 1 character for <10
 #  2 characters for >=10 <100 because 10 is 2 characters
-				my $color1='';my $color2='';
-				if($i == $#form/2){
-					my $cardnumber = @cp-$cardstoprint;
-					my $half1 = substr($line,0,length($line)/2);
-					my $half2 = substr($line,length($line)/2+length ($cardnumber));
-					$color1 = color $color[ $cp[$_]+1 > $#color ? 0 : $cp[$_]+1];
-					$color2 = color $color[$cp[$_]];
-					$line = $half1.$color1.$cardnumber.$color2.$half2;
+        my $color1='';my $color2='';
+        if($i == $#form/2){
+          my $cardnumber = @cp-$cardstoprint;
+          my $half1 = substr($line,0,length($line)/2);
+          my $half2 = substr($line,length($line)/2+length ($cardnumber));
+          $color1 = color $color[ $cp[$_]+1 > $#color ? 0 : $cp[$_]+1];
+          $color2 = color $color[$cp[$_]];
+          $line = $half1.$color1.$cardnumber.$color2.$half2;
 #each new card that is printed, decrements cards needed to print
-					$cardstoprint--;
-				}
+          $cardstoprint--;
+        }
 
 #print card with enough spacing to fit the maximum number of shapes
 #and center card in place
-				$spaces = $cardwidth*max(@number)-length($line)+length($color1)+length($color2);
-				print " "x($spaces/2).$line." "x($spaces/2+($spaces%2 ? 1:0))." ";
-			}
-			print color 'clear';
-			print "\n";
-		}
+        $spaces = $cardwidth*max(@number)-length($line)+length($color1)+length($color2);
+        print " "x($spaces/2).$line." "x($spaces/2+($spaces%2 ? 1:0))." ";
+      }
+      print color 'clear';
+      print "\n";
+    }
 
 #put cards on the other end of the array after being printed
-		for(1..$row){
-			push @sp, shift @sp;
-			push @fp, shift @fp;
-			push @cp, shift @cp;
-			push @np, shift @np;
-		}
-	}
-	debugplay if $debug>2;
+    for(1..$row){
+      push @sp, shift @sp;
+      push @fp, shift @fp;
+      push @cp, shift @cp;
+      push @np, shift @np;
+    }
+  }
+  debugplay if $debug>2;
 }
 
 #Put a shape in @form, randomly or by index into @shape from argument
 sub mold{
-	my $s = shift; $s = int rand @shape unless defined $s;
-	@form = @tria if($shape[$s] eq 'tria');
-	@form = @rect if($shape[$s] eq 'rect');
-	@form = @oval if($shape[$s] eq 'oval');
-	return $s;
+  my $s = shift; $s = int rand @shape unless defined $s;
+  @form = @tria if($shape[$s] eq 'tria');
+  @form = @rect if($shape[$s] eq 'rect');
+  @form = @oval if($shape[$s] eq 'oval');
+  return $s;
 }
 
 #Set the fill to random, or from @fill indexed by first argument
 sub shade{
-	my $f = shift; $f = int rand @fill unless defined $f;
-	$_ =~ s/[@fill]/$fill[$f]/g for(@form);
-	return $f;
+  my $f = shift; $f = int rand @fill unless defined $f;
+  $_ =~ s/[@fill]/$fill[$f]/g for(@form);
+  return $f;
 }
 
 #Set the color to random, or from @color indexed by first argument
 sub colorize{
-	my $c = shift; $c = int rand @color unless defined $c;
-	print color "bold $color[$c]";
+  my $c = shift; $c = int rand @color unless defined $c;
+  print color "bold $color[$c]";
 #$form[3][4] = $c[0];
-	return $c;
+  return $c;
 }
 
 #number doesn't need a function, for it is saved directly in the array
 
 sub printhelp{
-	print <<EOF;
+  print <<EOF;
 NAME
   The Game of Jedi Set: a pattern matching terminal card game
 
