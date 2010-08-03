@@ -1,4 +1,3 @@
-Replace picked cards with newly drawn cards to increase visual consistency of the board, rather than shifting everything to the top left, then adding newly drawn cards to the bottom right
 Add networked multiplayer (this is crazy, and won't be done by me any time soon)
 Windows version
 Web-based version with perl's cgi

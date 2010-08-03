@@ -24,7 +24,7 @@ use Term::ANSIColor;
 use List::Util qw(shuffle max);
 use subs qw(init shade colorize mold allequal allunequal);
 use subs qw(debugplay debugdeck);
-use subs qw(printcards printscores menu pick set draw discard);
+use subs qw(printcards printscores menu pick set draw choose);
 
 my $defaultrows = 4;#defaults used for help screen
 my $rows = $defaultrows;#Number of rows across the screen
@@ -41,57 +41,57 @@ GetOptions('debug+' => \$debug,'match!' => \$match,
 if($help){
 	print <<EOF;
 NAME
-  The Game of Jedi Set: a pattern matching terminal card game
+	The Game of Jedi Set: a pattern matching terminal card game
 
 USAGE
-  $0 [ --help|--version|--debug|--rows=<int>|--match|
-                         --cards=<int> ]
+	$0 [ --help|--version|--debug|--rows=<int>|--match|
+												 --cards=<int> ]
 
 DESCRIPTION
-  See <http://en.wikipedia.org/wiki/Set_(game)>
+	See <http://en.wikipedia.org/wiki/Set_(game)>
 
 OPTIONS
-  --help     -h   : This help message
+	--help     -h   : This help message
 
-  --rows     -r   : Specify the number of rows that will fit on your screen
-                    Vertical rows (aka: columns)
-                    Range = >0  else it defaults
-                    Default = $defaultrows
-  --cards    -c   : Specify the number of cards to play with each round
-                    Range = 1 through 81  else it defaults
-                    Default = $defaultcards
-  --version  -v   : Print version on standard output and exit
+	--rows     -r   : Specify the number of rows that will fit on your screen
+										Vertical rows (aka: columns)
+										Range = >0  else it defaults
+										Default = $defaultrows
+	--cards    -c   : Specify the number of cards to play with each round
+										Range = 1 through 81  else it defaults
+										Default = $defaultcards
+	--version  -v   : Print version on standard output and exit
 
-  --debug    -d   : Enable (likely useless) debuging output data 
-                    Use this option multiple times for more verbosity
-                    The data will be of the form: int   int  int   int
-                                                  shape fill color number
-                    shape, fill, and color are indexes:   values 0 through 2
-                    number is saved directly:             values 1 through 3
-                    Note: Look at the code to see the meanings of indexes
-  --no-match -nom : Deactivate player name matching
+	--debug    -d   : Enable (likely useless) debuging output data 
+										Use this option multiple times for more verbosity
+										The data will be of the form: int   int  int   int
+																									shape fill color number
+										shape, fill, and color are indexes:   values 0 through 2
+										number is saved directly:             values 1 through 3
+										Note: Look at the code to see the meanings of indexes
+	--no-match -nom : Deactivate player name matching
 
 Naming Players With Matching
-  When picking a set, the name of a player may be the shortest unique
-  abbreviation, or longer with the same root. When a previously used name could
-  be considered an abbreviation/root, the previously used name is overwritten.
-    Mew, and MewTwo are not valid players because Mew is an abbreviation/root
-    for MewTwo. Regardless of which is used first, Mew will become MewTwo.
-    MewTwo and Two are valid players. Their roots/abbreviations don't conflict.
+	When picking a set, the name of a player may be the shortest unique
+	abbreviation, or longer with the same root. When a previously used name could
+	be considered an abbreviation/root, the previously used name is overwritten.
+		Mew, and MewTwo are not valid players because Mew is an abbreviation/root
+		for MewTwo. Regardless of which is used first, Mew will become MewTwo.
+		MewTwo and Two are valid players. Their roots/abbreviations don't conflict.
 
-  Option names may be shorter unique abbreviations of the full names shown above
-  Full or abbreviated options may be preceded by one - or two -- dashes
+	Option names may be shorter unique abbreviations of the full names shown above
+	Full or abbreviated options may be preceded by one - or two -- dashes
 
 AUTHOR
-  Written by James Koval
+	Written by James Koval
 REPORTING BUGS
-  Report bugs to <jediknight304 () gmail . com>
+	Report bugs to <jediknight304 () gmail . com>
 COPYRIGHT
-  Copyright 2010 James Koval
-  License GPLv3+: GNU GPL version 3 or later
-  <http://gnu.org/licenses/gpl.html>
-  This is free software; you are free to change and redistribute it
-  There is NO WARRANTY, to the extent permitted by law
+	Copyright 2010 James Koval
+	License GPLv3+: GNU GPL version 3 or later
+	<http://gnu.org/licenses/gpl.html>
+	This is free software; you are free to change and redistribute it
+	There is NO WARRANTY, to the extent permitted by law
 EOF
 	exit 0;
 }
@@ -182,6 +182,7 @@ sub menu{
 			print "Not a set\n";
 			return;
 		}
+		#only show this message the first time
 		print "Names may be the shortest unique abbreviation, or longer with the same root...\n" unless scalar keys %scores;
 		print "Enter player  : ";
 		chomp ($name = <>);
@@ -199,16 +200,16 @@ sub menu{
 	printscores if $tmp =~ /^s/i;#scores
 }
 
+#args: name,card1,card2,card3
 sub pick{
 	my $name = shift;
+	choose @_;
 
-#next 3 args are indexes to the cards
-#go ahead and move them to the graveyard and get new ones
-	discard sort {$b <=> $a} @_[0..2];
-	print 'After Discard Before Draw ' if $debug>2;
 	debugplay if $debug>2;
-	draw for (1..$cards-@sp);#only draw cards up to $cards, the default amount on the board
 
+	#discard sort {$b <=> $a} @_[0..2];
+	#print 'After Discard Before Draw ' if $debug>2;
+	#draw for (1..$cards-@sp);#only draw cards up to $cards, the default amount on the board
 	my $found = 0;
 	if($match){
 		for(keys %scores){
@@ -280,13 +281,32 @@ sub init{
 	debugplay if $debug>2;
 }
 
-#remove cards from board, indexed by arguments, and place in graveyard
-sub discard{
+#args are indexes into in-play arrays
+#cards are copied to the graveyard,
+#overwritten with a newly drawn card if total cards are below the $cards limit
+#or just deleted if there exists add1card cards on the board
+sub choose{
+	@_ = sort {$b <=> $a} @_;
 	for (@_){
-		push @sg, splice @sp, $_, 1;
-		push @fg, splice @fp, $_, 1;
-		push @cg, splice @cp, $_, 1;
-		push @ng, splice @np, $_, 1;
+		push @sg, $sp[$_];
+		push @fg, $fp[$_];
+		push @cg, $cp[$_];
+		push @ng, $np[$_];
+
+		return 0 if not scalar @s;#can't draw if deck is empty
+
+		if(@sp>$cards){
+			splice @sp, $_, 1;
+			splice @fp, $_, 1;
+			splice @cp, $_, 1;
+			splice @np, $_, 1;
+		}
+		else{
+			$sp[$_] = pop @s;
+			$fp[$_] = pop @f;
+			$cp[$_] = pop @c;
+			$np[$_] = pop @n;
+		}
 	}
 }
 
@@ -301,9 +321,7 @@ sub draw{
 }
 
 sub printscores{
-	for(keys %scores){
-		print $_.": ".$scores{$_}."   ";
-	}
+	print $_.": ".$scores{$_}."   " for(keys %scores);
 	print "\n";
 }
 
