@@ -1,3 +1,5 @@
-Add networked multiplayer (this is crazy, and won't be done by me any time soon)
+Add networked multiplayer (this is crazy, and won't be done by me any time soon) http://www.linuxjournal.com/article/3237
 Windows version
 Web-based version with perl's cgi
+NCurses
+2D arrays for cards rather than parallel arrays

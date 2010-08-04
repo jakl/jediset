@@ -228,6 +228,8 @@ sub init{
   draw for(1..$cards);
 
   debugplay if $debug>2;
+
+  undef %scores;
 }
 
 #args are indexes into in-play arrays
