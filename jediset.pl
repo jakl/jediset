@@ -58,7 +58,6 @@ my @fill  = qw(`        +      @      );
 my @color = qw(magenta  green  yellow );
 my @number= qw(1        2      3      );
 #all supported colors: black red green yellow blue magenta cyan white
-@color = qw(black) if $web;#html color is not yet supported so just make everything one color
 
 #keep these an odd number across
 my @rect = qw(
@@ -66,7 +65,7 @@ _____
 |@@@@@|
 |@@@@@|
 |@@@@@|
--------);
+ -----);
 my @tria = qw(
 _
 /@\\  
@@ -235,7 +234,25 @@ sub init{
 }
 
 sub initweb{
-  print "Content-type: text/html\n\n<pre>";
+  #init CGI; and yes the \n\n is required
+  print "Content-type: text/html\n\n";
+
+  #setup jediset html stuff
+  print <<EOF;
+<title>JediSet</title><pre>
+<head>
+  <style type='text/css'>
+    .bg {
+      color: #00FF00;
+      background: black;
+    }
+  </style>
+</head>
+<p class='bg'>
+<a href='http://github.com/jediknight304/jediset'>JediSet Source at GitHub.com/Jediknight304</a>
+EOF
+
+  #grab GET parameters from URL
   my $buffer;my $name;my $value;my %FORM;
   #read in text
   $ENV{'REQUEST_METHOD'} =~ tr/a-z/A-Z/;#upper case?
@@ -252,6 +269,8 @@ sub initweb{
   $debug = $FORM{debug} if $FORM{debug};
   $version = $FORM{version} if $FORM{version};
   $help = $FORM{help} if $FORM{help};
+
+  #tell people about the GET options
   unless (keys %FORM){
   print <<EOF;
 If looks like you aren't using any options, but options are kool
@@ -331,7 +350,7 @@ sub printcards{
       for(0..$row-1){#cycle rows
         mold $sp[$_];#make @form a specific shape
         shade $fp[$_];#make @form a specific fill
-        colorize $cp[$_];#ready output for a color
+        print colorize $cp[$_];#ready output for a color
         my $spaces = " "x(($cardwidth-length $form[$i])/2);
         my $line = $spaces.$form[$i].$spaces;#center and space the shapes out
         $line x= $np[$_];#put the right number of shapes on a line
@@ -350,8 +369,8 @@ sub printcards{
           my $cardnumber = @cp-$cardstoprint;
           my $half1 = substr($line,0,length($line)/2); #left
           my $half2 = substr($line,length($line)/2+length ($cardnumber)); #right
-          $color1 = color $color[ $cp[$_]+1 > $#color ? 0 : $cp[$_]+1] unless $web;
-          $color2 = color $color[$cp[$_]] unless $web;
+          $color1 = colorize $cp[$_]+1 > $#color ? 0 : $cp[$_]+1;
+          $color2 = colorize $cp[$_];
           $line = $half1.$color1.$cardnumber.$color2.$half2;
 #each new card that is printed, decrements cards needed to print
           $cardstoprint--;
@@ -399,8 +418,8 @@ sub shade{
 #Set the color to random, or from @color indexed by first argument
 sub colorize{
   my $c = shift; $c = int rand @color unless defined $c;
-  print color "bold $color[$c]" unless $web;
-  return $c;
+  return color "bold $color[$c]" unless $web;
+  return "<span style='color: $color[$c]'>" if $web;
 }
 
 #number doesn't need a function, for it is saved directly in the array
