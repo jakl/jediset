@@ -3,7 +3,7 @@ NAME
 
 USAGE
   jediset.pl [ --help|--version|--debug|--rows=<int>|--match|
-                         --cards=<int> ]
+                         --cards=<int>|--web ]
 
 DESCRIPTION
   See <http://en.wikipedia.org/wiki/Set_(game)>
@@ -14,7 +14,7 @@ OPTIONS
   --rows     -r   : Specify the number of rows that will fit on your screen
                     Vertical rows (aka: columns)
                     Range = >0  else it defaults
-                    Default = 4
+                    Default = 3
   --cards    -c   : Specify the number of cards to play with each round
                     Range = 1 through 81  else it defaults
                     Default = 12
@@ -28,6 +28,7 @@ OPTIONS
                     number is saved directly:             values 1 through 3
                     Note: Look at the code to see the meanings of indexes
   --no-match -nom : Deactivate player name matching
+  --web      -w   : Format output for cgi html; This is not ment for a terminal
 
 Naming Players With Matching
   When picking a set, the name of a player may be the shortest unique

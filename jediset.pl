@@ -15,14 +15,13 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See
 the GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with Jedi Set. If not, see <http://www.gnu.org/license/>
+along with Jedi Set. If not, see <http://www.gnu.org/licenses/gpl.html>
 =cut
-
 use strict; use warnings;
 use Getopt::Long;
 use Term::ANSIColor;
 use List::Util qw(shuffle max);
-use subs qw(init shade colorize mold allequal allunequal);
+use subs qw(init initweb shade colorize mold allequal allunequal);
 use subs qw(debugplay debugdeck);
 use subs qw(printcards printscores printhelp menu pick set draw choose);
 
@@ -33,24 +32,25 @@ my $cards = $defaultcards;#Number of cards in a board
 my $debug=0;#show debug info, shows more with higher numbers
 my $version; my $help;#boolean to show version or help
 my $match=1;
+my $web;#turn on cgi/html compatable output
 
 GetOptions('debug+' => \$debug,'match!' => \$match,
   'cards=i' => \$cards, 'rows=i' => \$rows,
-  'version' => \$version, 'help' => \$help);
+  'version' => \$version, 'help' => \$help, 'web' => \$web);
 
 if($help){
   printhelp;
   exit 0;
 }
-if ($version) {
-  print "$0 1.0\n";
+if($version){
+  print "$0 2 beta\n";
   exit 0;
 }
+initweb if $web;
 
 #bounds checks
-$cards = $defaultcards if($cards <1 or $cards > 81);
+$cards = $defaultcards if $cards <1 or $cards > 81;
 $rows = $defaultrows if $rows <1;
-
 
 #constant list of values for cards 
 my @shape = qw(tria     rect   oval   );
@@ -58,6 +58,7 @@ my @fill  = qw(`        +      @      );
 my @color = qw(magenta  green  yellow );
 my @number= qw(1        2      3      );
 #all supported colors: black red green yellow blue magenta cyan white
+@color = qw(black) if $web;#html color is not yet supported so just make everything one color
 
 #keep these an odd number across
 my @rect = qw(
@@ -104,6 +105,7 @@ my %scores;
 init;#gen deck
 while(1){
   printcards;#show playing field
+  last if $web;
   menu;#show menu and handle input
 }
 
@@ -112,7 +114,7 @@ sub menu{
   my $tmp = <>; chomp $tmp;
   exit 0 if $tmp =~ /^q/i;#quit, case (i)nsensitive
   init if $tmp =~ /^n/i;
-  if ($tmp =~ /^p/i){#pick
+  if($tmp =~ /^p/i){#pick
     my $card1;my $card2;my $card3;my $name;
     do{
       print "Enter 1st card: ";
@@ -136,7 +138,7 @@ sub menu{
     chomp ($name = <>);
     pick($name, $card1, $card2, $card3);
   }
-  if ($tmp =~ /^r/i){#rows
+  if($tmp =~ /^r/i){#rows
     my $userrows;
     do{
       print "Enter rows: ";
@@ -232,6 +234,39 @@ sub init{
   undef %scores;
 }
 
+sub initweb{
+  print "Content-type: text/html\n\n<pre>";
+  my $buffer;my $name;my $value;my %FORM;
+  #read in text
+  $ENV{'REQUEST_METHOD'} =~ tr/a-z/A-Z/;#upper case?
+  $buffer = $ENV{'QUERY_STRING'} if ($ENV{'REQUEST_METHOD'} eq "GET");
+  #split info into name/value pairs
+  foreach my $pair (split(/&/, $buffer)){
+    ($name, $value) = split(/=/,$pair);
+    $value =~ tr/+/ /;
+    $value =~ s/%(..)/pack("C", hex($1))/eg;
+    $FORM{$name} = $value;
+  }
+  $rows = $FORM{rows} if $FORM{rows};
+  $cards = $FORM{cards} if $FORM{cards};
+  $debug = $FORM{debug} if $FORM{debug};
+  $version = $FORM{version} if $FORM{version};
+  $help = $FORM{help} if $FORM{help};
+  unless (keys %FORM){
+  print <<EOF;
+If looks like you aren't using any options, but options are kool
+After your url which should end in .pl type a ? then any or all of these things
+rows=7     or any number of columns you want besides 7
+cards=27   27 is the maximum until color works on the web
+debug=4    numbers less than 4 will show less debug information
+version=1  this is 1 or 0, and will show the current version of the program
+help=1     this is also 1 or 0, and will show you a terminal manual page
+If you want to use more than one option, seperate them with &
+like this: URL_YADA_YADA.pl?rows=7&cards=25&debug=2
+EOF
+  }
+}
+
 #args are indexes into in-play arrays
 #cards are copied to the graveyard,
 #overwritten with a newly drawn card if total cards are below the $cards limit
@@ -290,7 +325,7 @@ sub printcards{
   my $row=$rows;#fluxuates when fewer cards need to be printed
   my $cardstoprint = @sp;
   while($cardstoprint){
-    $row=$cardstoprint if($cardstoprint < $row);
+    $row=$cardstoprint if $cardstoprint < $row;
 
     for my $i (0..$#form){#cycle each line in ascii shape
       for(0..$row-1){#cycle rows
@@ -313,10 +348,10 @@ sub printcards{
         my $color1='';my $color2='';
         if($i == $#form/2){
           my $cardnumber = @cp-$cardstoprint;
-          my $half1 = substr($line,0,length($line)/2);
-          my $half2 = substr($line,length($line)/2+length ($cardnumber));
-          $color1 = color $color[ $cp[$_]+1 > $#color ? 0 : $cp[$_]+1];
-          $color2 = color $color[$cp[$_]];
+          my $half1 = substr($line,0,length($line)/2); #left
+          my $half2 = substr($line,length($line)/2+length ($cardnumber)); #right
+          $color1 = color $color[ $cp[$_]+1 > $#color ? 0 : $cp[$_]+1] unless $web;
+          $color2 = color $color[$cp[$_]] unless $web;
           $line = $half1.$color1.$cardnumber.$color2.$half2;
 #each new card that is printed, decrements cards needed to print
           $cardstoprint--;
@@ -325,9 +360,12 @@ sub printcards{
 #print card with enough spacing to fit the maximum number of shapes
 #and center card in place
         $spaces = $cardwidth*max(@number)-length($line)+length($color1)+length($color2);
-        print " "x($spaces/2).$line." "x($spaces/2+($spaces%2 ? 1:0))." ";
+        my $space1 = " "x($spaces/2);#left
+        my $space2 = " "x($spaces/2+($spaces%2 ? 1:0));#right
+        print $space1.$line.$space2;
+        print ' ' unless $_ == $rows-1;
       }
-      print color 'clear';
+      print color 'clear' unless $web;
       print "\n";
     }
 
@@ -345,9 +383,9 @@ sub printcards{
 #Put a shape in @form, randomly or by index into @shape from argument
 sub mold{
   my $s = shift; $s = int rand @shape unless defined $s;
-  @form = @tria if($shape[$s] eq 'tria');
-  @form = @rect if($shape[$s] eq 'rect');
-  @form = @oval if($shape[$s] eq 'oval');
+  @form = @tria if $shape[$s] eq 'tria';
+  @form = @rect if $shape[$s] eq 'rect';
+  @form = @oval if $shape[$s] eq 'oval';
   return $s;
 }
 
@@ -361,8 +399,7 @@ sub shade{
 #Set the color to random, or from @color indexed by first argument
 sub colorize{
   my $c = shift; $c = int rand @color unless defined $c;
-  print color "bold $color[$c]";
-#$form[3][4] = $c[0];
+  print color "bold $color[$c]" unless $web;
   return $c;
 }
 
@@ -375,7 +412,7 @@ NAME
 
 USAGE
   $0 [ --help|--version|--debug|--rows=<int>|--match|
-                         --cards=<int> ]
+                         --cards=<int>|--web ]
 
 DESCRIPTION
   See <http://en.wikipedia.org/wiki/Set_(game)>
@@ -400,6 +437,7 @@ OPTIONS
                     number is saved directly:             values 1 through 3
                     Note: Look at the code to see the meanings of indexes
   --no-match -nom : Deactivate player name matching
+  --web      -w   : Format output for cgi html; This is not ment for a terminal
 
 Naming Players With Matching
   When picking a set, the name of a player may be the shortest unique
