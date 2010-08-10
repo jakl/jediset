@@ -21,9 +21,11 @@ use strict; use warnings;
 use Getopt::Long;
 use Term::ANSIColor;
 use List::Util qw(shuffle max);
-use subs qw(init initweb shade colorize mold allequal allunequal);
-use subs qw(debugplay debugdeck);
-use subs qw(printcards printscores printhelp menu pick set draw choose);
+use subs qw(init initweb shade colorize mold allequal allunequal
+debugplay debugdeck
+printcards printscores printhelp menu pick set draw choose
+listsets
+);
 
 my $defaultrows = 3;
 my $rows = $defaultrows;#Number of rows across the screen
@@ -109,7 +111,7 @@ while(1){
 }
 
 sub menu{
-  print "(q)uit (p)ick (a)dd1card (s)cores (r)ows (h)elp (n)ewgame: ";
+  print "(q)uit (p)ick (a)dd1card (s)cores (r)ows (h)elp (n)ewgame (l)istsets: ";
   my $tmp = <>; chomp $tmp;
   exit 0 if $tmp =~ /^q/i;#quit, case (i)nsensitive
   init if $tmp =~ /^n/i;
@@ -118,15 +120,15 @@ sub menu{
     do{
       print "Enter 1st card: ";
       chomp ($card1 = <>);
-    }while($card1=~/\D/ or $card1>$#sp);
+    }while(not $card1 or $card1=~/\D/ or $card1>$#sp);
     do{
       print "Enter 2nd card: ";
       chomp ($card2 = <>);
-    }while($card2=~/\D/ or $card2>$#sp or $card2 == $card1);
+    }while(not $card2 or $card2=~/\D/ or $card2>$#sp or $card2 == $card1);
     do{
       print "Enter 3rd card: ";
       chomp ($card3 = <>);
-    }while($card3=~/\D/ or $card3>$#sp or $card3 == $card2 or $card3 == $card1);
+    }while(not $card3 or $card3=~/\D/ or $card3>$#sp or $card3 == $card2 or $card3 == $card1);
     unless (set $card1, $card2, $card3){
       print "Not a set\n";
       return;
@@ -148,6 +150,17 @@ sub menu{
   draw if $tmp =~ /^a/i;#add1card
   printscores if $tmp =~ /^s/i;#scores
   printhelp if $tmp =~ /^h/i;#help
+  listsets if $tmp =~ /^l/i;#listsets
+}
+
+sub listsets{
+  for my $i (0..$#sp){
+    for my $j ($i..$#sp){
+      for my $k ($j..$#sp){
+        print "$i $j $k\n" if not allequal $i, $j, $k and set $i, $j, $k;
+      }
+    }
+  }
 }
 
 #args: name,card1,card2,card3
@@ -237,20 +250,8 @@ sub initweb{
   #init CGI; and yes the \n\n is required
   print "Content-type: text/html\n\n";
 
-  #setup jediset html stuff
-  print <<EOF;
-<title>JediSet</title><pre>
-<head>
-  <style type='text/css'>
-    .bg {
-      color: #00FF00;
-      background: black;
-    }
-  </style>
-</head>
-<p class='bg'>
-<a href='http://github.com/jediknight304/jediset'>JediSet Source at GitHub.com/Jediknight304</a>
-EOF
+  #setup jediset html stuff; its one-line-ugly because multiline affects page
+  print '<title>JediSet</title><pre><head><style type="text/css"> .bg { color: #00FF00; background: black; } </style></head><p class="bg"><a href="http://github.com/jediknight304/jediset">JediSet Source at GitHub.com/Jediknight304</a>';
 
   #grab GET parameters from URL
   my $buffer;my $name;my $value;my %FORM;
@@ -276,7 +277,7 @@ EOF
 If looks like you aren't using any options, but options are kool
 After your url which should end in .pl type a ? then any or all of these things
 rows=7     or any number of columns you want besides 7
-cards=27   27 is the maximum until color works on the web
+cards=81   81 is the maximum; more defaults back to 81
 debug=4    numbers less than 4 will show less debug information
 version=1  this is 1 or 0, and will show the current version of the program
 help=1     this is also 1 or 0, and will show you a terminal manual page
@@ -298,15 +299,17 @@ sub choose{
     push @cg, $cp[$_];
     push @ng, $np[$_];
 
-    return 0 if not scalar @s;#can't draw if deck is empty
-
-    if(@sp>$cards){
+    #splice away add1cards or if there aren't new ones to draw
+    if(@sp>$cards or not @s){
       splice @sp, $_, 1;
       splice @fp, $_, 1;
       splice @cp, $_, 1;
       splice @np, $_, 1;
     }
-    else{
+    return 0 if not scalar @s;#can't draw if deck is empty
+
+    #as long as its possible to draw, overwrite chosen cards with drawn
+    if(@sp<=$cards){
       $sp[$_] = pop @s;
       $fp[$_] = pop @f;
       $cp[$_] = pop @c;
