@@ -2,8 +2,8 @@ NAME
   The Game of Jedi Set: a pattern matching terminal card game
 
 USAGE
-  jediset.pl [ --help|--version|--debug|--rows=<int>|--match|
-                         --cards=<int>|--web ]
+  jediset.pl [ --help|--version|--debug|--rows=<int>|--match|--listsets|
+                         --cards=<int>|--web|--atleast ]
 
 DESCRIPTION
   See <http://en.wikipedia.org/wiki/Set_(game)>
@@ -13,11 +13,13 @@ OPTIONS
 
   --rows     -r   : Specify the number of rows that will fit on your screen
                     Vertical rows (aka: columns)
-                    Range = >0  else it defaults
-                    Default = 3
+                    Range: >0  else it defaults to 3
   --cards    -c   : Specify the number of cards to play with each round
-                    Range = 1 through 81  else it defaults
-                    Default = 12
+                    Range: 1 through 81  else it defaults to 12
+  --listsets -l   : Always list valid sets (cheater)
+
+  --atleast  -a   : Boards will contain at least this many sets
+                    Range: <12  else it defaults to 0
   --version  -v   : Print version on standard output and exit
 
   --debug    -d   : Enable (likely useless) debuging output data 
@@ -27,16 +29,9 @@ OPTIONS
                     shape, fill, and color are indexes:   values 0 through 2
                     number is saved directly:             values 1 through 3
                     Note: Look at the code to see the meanings of indexes
-  --no-match -nom : Deactivate player name matching
-  --web      -w   : Format output for cgi html; This is not ment for a terminal
+  --no-match -nom : Deactivate player name matching (see README-Match)
 
-Naming Players With Matching
-  When picking a set, the name of a player may be the shortest unique
-  abbreviation, or longer with the same root. When a previously used name could
-  be considered an abbreviation/root, the previously used name is overwritten.
-    Mew, and MewTwo are not valid players because Mew is an abbreviation/root
-    for MewTwo. Regardless of which is used first, Mew will become MewTwo.
-    MewTwo and Two are valid players. Their roots/abbreviations don't conflict.
+  --web      -w   : Format output for cgi html; This is not ment for a terminal
 
   Option names may be shorter unique abbreviations of the full names shown above
   Full or abbreviated options may be preceded by one - or two -- dashes

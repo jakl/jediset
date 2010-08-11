@@ -1,0 +1,7 @@
+Naming Players With Matching
+  When picking a set, the name of a player may be the shortest unique
+  abbreviation, or longer with the same root. When a previously used name could
+  be considered an abbreviation/root, the previously used name is overwritten.
+    Mew, and MewTwo are not valid players because Mew is an abbreviation/root
+    for MewTwo. Regardless of which is used first, Mew will become MewTwo.
+    MewTwo and Two are valid players. Their roots/abbreviations don't conflict.

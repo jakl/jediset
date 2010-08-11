@@ -23,8 +23,8 @@ use Term::ANSIColor;
 use List::Util qw(shuffle max);
 use subs qw(init initweb shade colorize mold allequal allunequal
 debugplay debugdeck
-printcards printscores printhelp menu pick set draw choose
-listsets
+printcards printscores help menu pick set draw choose
+listsets countsets redraw menuhelp
 );
 
 my $defaultrows = 3;
@@ -35,13 +35,15 @@ my $debug=0;#show debug info, shows more with higher numbers
 my $version; my $help;#boolean to show version or help
 my $match=1;
 my $web;#turn on cgi/html compatable output
+my $listsets;#lists all sets in play
+my $atleast=0;#first board will have at least this many
 
-GetOptions('debug+' => \$debug,'match!' => \$match,
-  'cards=i' => \$cards, 'rows=i' => \$rows,
+GetOptions('debug+' => \$debug,'match!' => \$match, 'listsets' => \$listsets,
+  'cards=i' => \$cards, 'rows=i' => \$rows, 'atleast=i' => \$atleast,
   'version' => \$version, 'help' => \$help, 'web' => \$web);
 
 if($help){
-  printhelp;
+  help;
   exit 0;
 }
 if($version){
@@ -53,6 +55,7 @@ initweb if $web;
 #bounds checks
 $cards = $defaultcards if $cards <1 or $cards > 81;
 $rows = $defaultrows if $rows <1;
+$atleast = 0 if $atleast>11;
 
 #constant list of values for cards 
 my @shape = qw(tria     rect   oval   );
@@ -61,13 +64,13 @@ my @color = qw(magenta  green  yellow );
 my @number= qw(1        2      3      );
 #all supported colors: black red green yellow blue magenta cyan white
 
-#keep these an odd number across
+#keep heights the same
 my @rect = qw(
-_____
-|@@@@@|
-|@@@@@|
-|@@@@@|
- -----);
+______
+|@@@@@@|
+|@@@@@@|
+|@@@@@@|
+------);
 my @tria = qw(
 _
 /@\\  
@@ -75,11 +78,12 @@ _
 /@@@@@\\
 -------);
 my @oval = qw(
-___  
-/@@@\\ 
-{@@@@@}
-\\@@@/ 
----);
+__  
+/@@\\ 
+{@@@@}
+\\@@/ 
+--);
+
 my @form;#shape used for the next card printed
 
 my $cardwidth=0;
@@ -88,30 +92,42 @@ $cardwidth = $cardwidth > length $_ ? $cardwidth : length $_ for(@rect);
 $cardwidth = $cardwidth > length $_ ? $cardwidth : length $_ for(@tria);
 $cardwidth = $cardwidth > length $_ ? $cardwidth : length $_ for(@oval);
 
+my $cardheight=0;
+#Find maximum card width
+$cardheight = $cardheight > @rect ? $cardheight : @rect;
+$cardheight = $cardheight > @tria ? $cardheight : @tria;
+$cardheight = $cardheight > @oval ? $cardheight : @oval;
+
 #scalers to temporarily hold values during operations
 #parallel arrays to hold deck
 #extra set of parallel arrays to hold cards in play (suffix p)
 #extra set of parallel arrays to hold cards in graveyard (suffix g)
-my $s; my @s; my @sp; my @sg;#shape
-my $f; my @f; my @fp; my @fg;#fill
-my $c; my @c; my @cp; my @cg;#color
-my $n; my @n; my @np; my @ng;#number
+my @s; my @sp; my @sg;#shape
+my @f; my @fp; my @fg;#fill
+my @c; my @cp; my @cg;#color
+my @n; my @np; my @ng;#number
 
 #pseudo-parallel array remembers who found a set
 #indexes into graveyard by x3 because it remembers who found a set
 # not individual cards, and sets are always groups of 3 cards
 my %scores;
+my %lookup;#hash lookup uses sfcn as key to see if card is in play
+my $game;#tracks how many games have been played
 
 #game loop
-init;#gen deck
+init;
 while(1){
+  while(countsets() <$atleast){
+    init if not redraw;#redraw is false if there are no cards to draw
+  }#look for at least $atleast sets
   printcards;#show playing field
+  print listsets if $listsets;
   last if $web;
   menu;#show menu and handle input
 }
 
 sub menu{
-  print "(q)uit (p)ick (a)dd1card (s)cores (r)ows (h)elp (n)ewgame (l)istsets: ";
+  print "(q)uit (p)ick (d)raw (s)core (r)ows (n)ew (l)istsets (a)tleast: ";
   my $tmp = <>; chomp $tmp;
   exit 0 if $tmp =~ /^q/i;#quit, case (i)nsensitive
   init if $tmp =~ /^n/i;
@@ -120,15 +136,16 @@ sub menu{
     do{
       print "Enter 1st card: ";
       chomp ($card1 = <>);
-    }while(not $card1 or $card1=~/\D/ or $card1>$#sp);
+    }while($card1 eq '' or $card1=~/\D/ or $card1>$#sp);
+    #while it has no digits, or it has non-digits, or it is not on the board
     do{
       print "Enter 2nd card: ";
       chomp ($card2 = <>);
-    }while(not $card2 or $card2=~/\D/ or $card2>$#sp or $card2 == $card1);
+    }while($card2 eq '' or $card2=~/\D/ or $card2>$#sp or $card2 == $card1);
     do{
       print "Enter 3rd card: ";
       chomp ($card3 = <>);
-    }while(not $card3 or $card3=~/\D/ or $card3>$#sp or $card3 == $card2 or $card3 == $card1);
+    }while($card3 eq '' or $card3=~/\D/ or $card3>$#sp or $card3 == $card2 or $card3 == $card1);
     unless (set $card1, $card2, $card3){
       print "Not a set\n";
       return;
@@ -147,20 +164,37 @@ sub menu{
     }while($userrows =~/\D/ or $userrows < 1);
     $rows = $userrows;
   }
-  draw if $tmp =~ /^a/i;#add1card
+  draw if $tmp =~ /^d/i;#add a card
   printscores if $tmp =~ /^s/i;#scores
-  printhelp if $tmp =~ /^h/i;#help
-  listsets if $tmp =~ /^l/i;#listsets
+  menuhelp if $tmp =~ /^h/i;#help
+  print listsets if $tmp =~ /^l/i;#listsets
+  if($tmp =~ /^a/i){#atleast this many sets are always on the board
+    do{
+      chomp($atleast=<>);
+    }while($atleast eq '' or $atleast=~/\D/ or $atleast>11);
+  }
 }
 
 sub listsets{
+  #%lookup might be used here to lower the big O notation of this algorithm, but it adds
+  #quite a number of steps in other places, and is probably not worth the added
+  #complexity and increase in big O notation other places
+  my $return = '';
   for my $i (0..$#sp){
-    for my $j ($i..$#sp){
-      for my $k ($j..$#sp){
-        print "$i $j $k\n" if not allequal $i, $j, $k and set $i, $j, $k;
+    for my $j ($i+1..$#sp){
+      for my $k ($j+1..$#sp){
+        $return .= "$i $j $k\n" if set $i, $j, $k;
       }
     }
   }
+  return $return;
+}
+
+sub countsets{
+  my $sets = listsets;
+  my $count = 0;
+  $count++ while $sets =~ /\n/g;
+  return $count;
 }
 
 #args: name,card1,card2,card3
@@ -211,6 +245,8 @@ sub allequal{	return keys %{{ map {$_, 1} @_ }} == 1; }
 sub allunequal{	return keys %{{ map {$_, 1} @_ }} == @_; }
 
 sub init{
+  $game++;
+  print "Game $game\n";
 #init @form for for-loops that use a standard shape's array length
   @form = @rect;
 #reset arrays
@@ -218,7 +254,7 @@ sub init{
   undef @sp;undef @fp;undef @cp;undef @np;
 
 #populate deck with non-repeating cards
-  for $s(0..$#shape){for $f(0..$#fill){for $c(0..$#color){for $n(0..$#number){
+  for my $s(0..$#shape){for my $f(0..$#fill){for my $c(0..$#color){for my $n(0..$#number){
           push @s, $s;
           push @f, $f;
           push @c, $c;
@@ -251,7 +287,8 @@ sub initweb{
   print "Content-type: text/html\n\n";
 
   #setup jediset html stuff; its one-line-ugly because multiline affects page
-  print '<title>JediSet</title><pre><head><style type="text/css"> .bg { color: #00FF00; background: black; } </style></head><p class="bg"><a href="http://github.com/jediknight304/jediset">JediSet Source at GitHub.com/Jediknight304</a>';
+  print '<title>JediSet</title><head><style type="text/css"> .bg { color: #00FF00; background: black; } </style></head><body class=bg><a href="http://github.com/jediknight304/jediset">JediSet Source at GitHub.com/Jediknight304</a><br />';
+  print "<pre>";
 
   #grab GET parameters from URL
   my $buffer;my $name;my $value;my %FORM;
@@ -270,10 +307,12 @@ sub initweb{
   $debug = $FORM{debug} if $FORM{debug};
   $version = $FORM{version} if $FORM{version};
   $help = $FORM{help} if $FORM{help};
+  $listsets = $FORM{listsets} if $FORM{listsets};
+  $atleast = $FORM{atleast} if $FORM{atleast};
 
   #tell people about the GET options
   unless (keys %FORM){
-  print <<EOF;
+    print <<EOF;
 If looks like you aren't using any options, but options are kool
 After your url which should end in .pl type a ? then any or all of these things
 rows=7     or any number of columns you want besides 7
@@ -281,6 +320,7 @@ cards=81   81 is the maximum; more defaults back to 81
 debug=4    numbers less than 4 will show less debug information
 version=1  this is 1 or 0, and will show the current version of the program
 help=1     this is also 1 or 0, and will show you a terminal manual page
+listsets=1 show all sets (CHEATER)
 If you want to use more than one option, seperate them with &
 like this: URL_YADA_YADA.pl?rows=7&cards=25&debug=2
 EOF
@@ -290,16 +330,17 @@ EOF
 #args are indexes into in-play arrays
 #cards are copied to the graveyard,
 #overwritten with a newly drawn card if total cards are below the $cards limit
-#or just deleted if there exists add1card cards on the board
+#or just deleted if there exists added cards on the board
 sub choose{
-  @_ = sort {$b <=> $a} @_;
+  @_ = sort {$b <=> $a} @_;#must be sorted in backwards order to avoid index shifting from early deletions
   for (@_){
+    undef $lookup{$sp[$_].$fp[$_].$cp[$_].$np[$_]};
     push @sg, $sp[$_];
     push @fg, $fp[$_];
     push @cg, $cp[$_];
     push @ng, $np[$_];
 
-    #splice away add1cards or if there aren't new ones to draw
+    #splice away cards if they were added or if there aren't new cards to draw
     if(@sp>$cards or not @s){
       splice @sp, $_, 1;
       splice @fp, $_, 1;
@@ -314,6 +355,7 @@ sub choose{
       $fp[$_] = pop @f;
       $cp[$_] = pop @c;
       $np[$_] = pop @n;
+      $lookup{$sp[$_].$fp[$_].$cp[$_].$np[$_]} = $_;
     }
   }
 }
@@ -322,10 +364,20 @@ sub choose{
 #return false if deck is empty
 sub draw{
   return 0 if not scalar @s;#can't draw if deck is empty
-  push @sp, pop @s;
-  push @fp, pop @f;
-  push @cp, pop @c;
-  push @np, pop @n;
+  my $s = pop @s;
+  my $f = pop @f;
+  my $c = pop @c;
+  my $n = pop @n;
+  push @sp, $s;
+  push @fp, $f;
+  push @cp, $c;
+  push @np, $n;
+  $lookup{$s.$f.$c.$n} = $#sp;
+}
+
+sub redraw{
+  shift @sp; shift @fp; shift @cp; shift @np;
+  return draw;
 }
 
 sub printscores{
@@ -427,14 +479,27 @@ sub colorize{
 
 #number doesn't need a function, for it is saved directly in the array
 
-sub printhelp{
+sub menuhelp{
+  print <<EOF;
+q  Quit immediately
+p  Allows you to select, by card number, 3 different cards that make a set
+d  Draw one extra card if you determine no sets are in play
+s  Show all players' scores
+r  Set the number of columns you can safely fit in your terminal
+n  Immediately start a new game, erasing all scores
+l  List all sets in play, by listing their indexes
+a  Guarantee that at least so many sets are always in play. You can specify!
+EOF
+}
+
+sub help{
   print <<EOF;
 NAME
   The Game of Jedi Set: a pattern matching terminal card game
 
 USAGE
-  $0 [ --help|--version|--debug|--rows=<int>|--match|
-                         --cards=<int>|--web ]
+  $0 [ --help|--version|--debug|--rows=<int>|--match|--listsets|
+                         --cards=<int>|--web|--atleast ]
 
 DESCRIPTION
   See <http://en.wikipedia.org/wiki/Set_(game)>
@@ -444,11 +509,13 @@ OPTIONS
 
   --rows     -r   : Specify the number of rows that will fit on your screen
                     Vertical rows (aka: columns)
-                    Range = >0  else it defaults
-                    Default = $defaultrows
+                    Range: >0  else it defaults to $defaultrows
   --cards    -c   : Specify the number of cards to play with each round
-                    Range = 1 through 81  else it defaults
-                    Default = $defaultcards
+                    Range: 1 through 81  else it defaults to $defaultcards
+  --listsets -l   : Always list valid sets (cheater)
+
+  --atleast  -a   : Boards will contain at least this many sets
+                    Range: <12  else it defaults to 0
   --version  -v   : Print version on standard output and exit
 
   --debug    -d   : Enable (likely useless) debuging output data 
@@ -458,16 +525,9 @@ OPTIONS
                     shape, fill, and color are indexes:   values 0 through 2
                     number is saved directly:             values 1 through 3
                     Note: Look at the code to see the meanings of indexes
-  --no-match -nom : Deactivate player name matching
-  --web      -w   : Format output for cgi html; This is not ment for a terminal
+  --no-match -nom : Deactivate player name matching (see README-Match)
 
-Naming Players With Matching
-  When picking a set, the name of a player may be the shortest unique
-  abbreviation, or longer with the same root. When a previously used name could
-  be considered an abbreviation/root, the previously used name is overwritten.
-    Mew, and MewTwo are not valid players because Mew is an abbreviation/root
-    for MewTwo. Regardless of which is used first, Mew will become MewTwo.
-    MewTwo and Two are valid players. Their roots/abbreviations don't conflict.
+  --web      -w   : Format output for cgi html; This is not ment for a terminal
 
   Option names may be shorter unique abbreviations of the full names shown above
   Full or abbreviated options may be preceded by one - or two -- dashes
