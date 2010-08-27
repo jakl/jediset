@@ -47,7 +47,7 @@ if($help){
   exit 0;
 }
 if($version){
-  print "$0 2 beta\n";
+  print "$0 2\n";
   exit 0;
 }
 initweb if $web;
@@ -131,13 +131,18 @@ sub menu{
   my $tmp = <>; chomp $tmp;
   exit 0 if $tmp =~ /^q/i;#quit, case (i)nsensitive
   init if $tmp =~ /^n/i;
-  if($tmp =~ /^p/i){#pick
+  if($tmp =~ /^p|^(\d+)/i){#pick
     my $card1;my $card2;my $card3;my $name;
-    do{
-      print "Enter 1st card: ";
-      chomp ($card1 = <>);
-    }while($card1 eq '' or $card1=~/\D/ or $card1>$#sp);
-    #while it has no digits, or it has non-digits, or it is not on the board
+    if($1<=$#sp){
+      $card1 = $1;
+    }
+    else{
+      do{
+        print "Enter 1st card: ";
+        chomp ($card1 = <>);
+      }while($card1 eq '' or $card1=~/\D/ or $card1>$#sp);
+      #while it has no digits, or it has non-digits, or it is not on the board
+    }
     do{
       print "Enter 2nd card: ";
       chomp ($card2 = <>);
@@ -321,6 +326,7 @@ debug=4    numbers less than 4 will show less debug information
 version=1  this is 1 or 0, and will show the current version of the program
 help=1     this is also 1 or 0, and will show you a terminal manual page
 listsets=1 show all sets (CHEATER)
+atleast=11 show boards that always contain at least 11 sets, the max
 If you want to use more than one option, seperate them with &
 like this: URL_YADA_YADA.pl?rows=7&cards=25&debug=2
 EOF
