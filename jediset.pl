@@ -128,29 +128,24 @@ while(1){
 
 sub menu{
   print "(q)uit (p)ick (d)raw (s)core (r)ows (n)ew (l)istsets (a)tleast: ";
-  my $tmp = <>; chomp $tmp;
+  chomp (my $tmp = <>);
   exit 0 if $tmp =~ /^q/i;#quit, case (i)nsensitive
   init if $tmp =~ /^n/i;
-  if($tmp =~ /^p|^(\d+)/i){#pick
-    my $card1;my $card2;my $card3;my $name;
-    if($1<=$#sp){
-      $card1 = $1;
+  if($tmp =~ /^p|^(\d+)\s*(\d*)\s*(\d*)/i){#pick
+    my $card1=$1;my $card2=$2;my $card3=$3;my $name;
+    while($card1 eq '' or $card1=~/\D/ or $card1>$#sp){
+    #while it has no digits, or it has non-digits, or it is not on the board
+      print "Enter 1st card: ";
+      chomp ($card1 = <>);
     }
-    else{
-      do{
-        print "Enter 1st card: ";
-        chomp ($card1 = <>);
-      }while($card1 eq '' or $card1=~/\D/ or $card1>$#sp);
-      #while it has no digits, or it has non-digits, or it is not on the board
-    }
-    do{
+    while($card2 eq '' or $card2=~/\D/ or $card2>$#sp or $card2 == $card1){
       print "Enter 2nd card: ";
       chomp ($card2 = <>);
-    }while($card2 eq '' or $card2=~/\D/ or $card2>$#sp or $card2 == $card1);
-    do{
+    }
+    while($card3 eq '' or $card3=~/\D/ or $card3>$#sp or $card3 == $card2 or $card3 == $card1){
       print "Enter 3rd card: ";
       chomp ($card3 = <>);
-    }while($card3 eq '' or $card3=~/\D/ or $card3>$#sp or $card3 == $card2 or $card3 == $card1);
+    }
     unless (set $card1, $card2, $card3){
       print "Not a set\n";
       return;
