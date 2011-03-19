@@ -36,7 +36,7 @@ my $version; my $help;#boolean to show version or help
 my $match=1;
 my $web;#turn on cgi/html compatable output
 my $listsets;#lists all sets in play
-my $atleast=0;#first board will have at least this many
+my $atleast=0;#first board will have at least this many sets in it
 
 GetOptions('debug+' => \$debug,'match!' => \$match, 'listsets' => \$listsets,
   'cards=i' => \$cards, 'rows=i' => \$rows, 'atleast=i' => \$atleast,
@@ -62,9 +62,9 @@ my @shape = qw(tria     rect   oval   );
 my @fill  = qw(`        +      @      );
 my @color = qw(magenta  green  yellow );
 my @number= qw(1        2      3      );
-#all supported colors: black red green yellow blue magenta cyan white
+#supported colors: black red green yellow blue magenta cyan white
 
-#keep heights the same
+#keep heights the same when modifying shapes
 my @rect = qw(
 ______
 |@@@@@@|
@@ -98,34 +98,36 @@ $cardheight = $cardheight > @rect ? $cardheight : @rect;
 $cardheight = $cardheight > @tria ? $cardheight : @tria;
 $cardheight = $cardheight > @oval ? $cardheight : @oval;
 
-#scalers to temporarily hold values during operations
-#parallel arrays to hold deck
-#extra set of parallel arrays to hold cards in play (suffix p)
-#extra set of parallel arrays to hold cards in graveyard (suffix g)
+#shape,fill,color,number Parallel Arrays for game data
+#sfcn: parallel arrays to hold deck
+#sp fp cp np: parallel arrays to hold cards in play (suffix p)
+#sg fg cg ng: parallel arrays to hold cards in graveyard (suffix g)
 my @s; my @sp; my @sg;#shape
 my @f; my @fp; my @fg;#fill
 my @c; my @cp; my @cg;#color
 my @n; my @np; my @ng;#number
 
-#pseudo-parallel array remembers who found a set
-#indexes into graveyard by x3 because it remembers who found a set
-# not individual cards, and sets are always groups of 3 cards
-my %scores;
-my %lookup;#hash lookup uses sfcn as key to see if card is in play
-my $game;#tracks how many games have been played
+
+
+my %scores;#Track points per player. Player names are keys to their points
+my %lookup;#hash lookup uses sfcn as the key to see if card is in play
+my $game;#game counter tracks how many games have been played
 
 #game loop
 init;
 while(1){
   while(countsets() <$atleast){
+	# redraw new boards until there are at least so many sets (user defined, default 0)
+	# if redrawing is impossible, reinitialize the deck
     init if not redraw;#redraw is false if there are no cards to draw
   }#look for at least $atleast sets
   printcards;#show playing field
-  print listsets if $listsets;
-  last if $web;
+  print listsets if $listsets;#show all current sets on the board (CHEATING)
+  last if $web;#The web port doesn't support input - end before showing the input menu
   menu;#show menu and handle input
 }
 
+#Display the game menu and process input
 sub menu{
   print "(q)uit (p)ick (d)raw (s)core (r)ows (n)ew (l)istsets (a)tleast: ";
   chomp (my $tmp = <>);
@@ -175,10 +177,11 @@ sub menu{
   }
 }
 
+#Search the board for sets and return them
 sub listsets{
   #%lookup might be used here to lower the big O notation of this algorithm, but it adds
   #quite a number of steps in other places, and is probably not worth the added
-  #complexity and increase in big O notation other places
+  #complexity and increase in big O notation in other places
   my $return = '';
   for my $i (0..$#sp){
     for my $j ($i+1..$#sp){
@@ -190,6 +193,7 @@ sub listsets{
   return $return;
 }
 
+#Count the number of sets returned by listsets
 sub countsets{
   my $sets = listsets;
   my $count = 0;
@@ -197,6 +201,7 @@ sub countsets{
   return $count;
 }
 
+#Process selecting a 3 card set from the current game board
 #args: name,card1,card2,card3
 sub pick{
   my $name = shift;
@@ -229,7 +234,8 @@ sub pick{
   printscores if $debug>1;
 }
 
-#takes indexes into in-play arrays: @sp, @fp, $cp, @np ; and checks for valid set
+#Parameters are indexes into in-play arrays: @sp, @fp, $cp, @np ;
+# checks for valid set among those 3 cards
 sub set{
   return 0 unless allequal @sp[@_] or allunequal @sp[@_];
   return 0 unless allequal @fp[@_] or allunequal @fp[@_];
@@ -244,6 +250,7 @@ sub allequal{	return keys %{{ map {$_, 1} @_ }} == 1; }
 #returns whether every argument is a unique key
 sub allunequal{	return keys %{{ map {$_, 1} @_ }} == @_; }
 
+#Initialize all game variables, mainly cards in play and in the deck
 sub init{
   $game++;
   print "Game $game\n";
@@ -252,6 +259,7 @@ sub init{
 #reset arrays
   undef @s;undef @f;undef @c;undef @n;
   undef @sp;undef @fp;undef @cp;undef @np;
+  undef @sg;undef @fg;undef @cg;undef @ng;
 
 #populate deck with non-repeating cards
   for my $s(0..$#shape){for my $f(0..$#fill){for my $c(0..$#color){for my $n(0..$#number){
@@ -282,6 +290,8 @@ sub init{
   undef %scores;
 }
 
+#Initialize web specific variables, and ready the output for CGI compatability
+#Accept GET parameters in place of command line options
 sub initweb{
   #init CGI; and yes the \n\n is required
   print "Content-type: text/html\n\n";
@@ -361,7 +371,7 @@ sub choose{
   }
 }
 
-#take a card from end of deck, and put onto end of cards in play
+#take a card from end of deck, and put onto the end of cards in play
 #return false if deck is empty
 sub draw{
   return 0 if not scalar @s;#can't draw if deck is empty
@@ -376,6 +386,7 @@ sub draw{
   $lookup{$s.$f.$c.$n} = $#sp;
 }
 
+#Remove a card just drawn and replace it with a newly drawn card
 sub redraw{
   shift @sp; shift @fp; shift @cp; shift @np;
   return draw;
@@ -386,16 +397,19 @@ sub printscores{
   print "\n";
 }
 
+#Print the current deck
 sub debugdeck{
   print "Deck:\n";
   print $_." "x(3- length $_) ." $s[$_] $f[$_] $c[$_] $n[$_]\n" for(0..$#s);
 }
 
+#Print the current cards in play, formatted as debug information
 sub debugplay{
   print "Play:\n";
   print $_." "x (3- length $_) ." $sp[$_] $fp[$_] $cp[$_] $np[$_]\n" for(0..$#sp);
 }
 
+#Print the game board as ASCII art
 sub printcards{
   my $row=$rows;#fluxuates when fewer cards need to be printed
   my $cardstoprint = @sp;
@@ -479,7 +493,9 @@ sub colorize{
 }
 
 #number doesn't need a function, for it is saved directly in the array
+#therefore this doesn't exist: sub number{}
 
+#Print the help screen for the in-game menu
 sub menuhelp{
   print <<EOF;
 q  Quit immediately
@@ -493,6 +509,7 @@ a  Guarantee that at least so many sets are always in play. You can specify!
 EOF
 }
 
+#Print the general help for the entire program
 sub help{
   print <<EOF;
 NAME
